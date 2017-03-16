@@ -35,6 +35,8 @@
 namespace pygds
 {
 	extern PdGDSFile PYGDS_GDS_Files[];
+	extern vector<PdGDSObj> PYGDS_GDSObj_List;
+	extern map<PdGDSObj, int> PYGDS_GDSObj_Map;
 	extern int GetFileIndex(PdGDSFile file, bool throw_error=true);
 
 
@@ -198,6 +200,85 @@ static PdGDSFile ID2File(int file_id)
 }
 
 
+/// file size to a string
+static string fmt_size(double b)
+{
+	static const double TB = 1024.0*1024*1024*1024;
+	static const double GB = 1024.0*1024*1024;
+	static const double MB = 1024.0*1024;
+	static const double KB = 1024.0;
+
+	char s[256];
+	if (b >= TB)
+		FmtText(s, sizeof(s), "%.1fT", b/TB);
+	else if (b >= GB)
+		FmtText(s, sizeof(s), "%.1fG", b/GB);
+	else if (b >= MB)
+		FmtText(s, sizeof(s), "%.1fM", b/MB);
+	else if (b >= KB)
+		FmtText(s, sizeof(s), "%.1fK", b/KB);
+	else
+		FmtText(s, sizeof(s), "%gB", b);
+
+	return string(s);
+}
+
+
+/// convert "(CdGDSObj*)  -->  SEXP"
+static void set_obj(CdGDSObj *Obj, int &outidx, Py_ssize_t &outptr)
+{
+	static const char *ERR_OBJLIST = "Internal error in GDS node list.";
+
+	if (!Obj)
+		throw ErrGDSFmt("Invalid GDS object [NULL].");
+
+	map<PdGDSObj, int>::iterator it = PYGDS_GDSObj_Map.find(Obj);
+	if (it != PYGDS_GDSObj_Map.end())
+	{
+		outidx = it->second;
+		if ((outidx < 0) || (outidx >= (int)PYGDS_GDSObj_List.size()))
+			throw ErrGDSFmt(ERR_OBJLIST);
+		if (PYGDS_GDSObj_List[outidx] != Obj)
+			throw ErrGDSFmt(ERR_OBJLIST);
+	} else {
+		vector<PdGDSObj>::iterator it =
+			find(PYGDS_GDSObj_List.begin(), PYGDS_GDSObj_List.end(),
+			(PdGDSObj)NULL);
+		if (it != PYGDS_GDSObj_List.end())
+		{
+			outidx = it - PYGDS_GDSObj_List.begin();
+			*it = Obj;
+		} else {
+			outidx = PYGDS_GDSObj_List.size();
+			PYGDS_GDSObj_List.push_back(Obj);
+		}
+		PYGDS_GDSObj_Map[Obj] = outidx;
+	}
+
+	outptr = (Py_ssize_t)Obj;
+}
+
+static CdGDSObj* get_obj(int idx, Py_ssize_t ptr_int)
+{
+	static const char *ERR_GDS_OBJ  =
+		"Invalid GDS node object!";
+	static const char *ERR_GDS_OBJ2 =
+		"Invalid GDS node object (it was closed or deleted).";
+
+	CdGDSObj *ptr = (CdGDSObj *)ptr_int;
+	// check
+	if ((idx < 0) || (idx >= (int)PYGDS_GDSObj_List.size()))
+		throw ErrGDSFmt(ERR_GDS_OBJ);
+	if (ptr == NULL)
+		throw ErrGDSFmt(ERR_GDS_OBJ);
+	if (PYGDS_GDSObj_List[idx] != ptr)
+		throw ErrGDSFmt(ERR_GDS_OBJ2);
+
+	return ptr;
+}
+
+
+
 // ----------------------------------------------------------------------------
 // File Operations
 // ----------------------------------------------------------------------------
@@ -285,6 +366,146 @@ static PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 }
 
 
+/// Synchronize the GDS file
+static PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
+{
+	int file_id;
+	if (!PyArg_ParseTuple(args, "i", &file_id))
+		return NULL;
+
+	COREARRAY_TRY
+		ID2File(file_id)->SyncFile();
+	COREARRAY_CATCH
+	Py_RETURN_NONE;
+}
+
+
+/// Get the file size and check the file handler
+static PyObject* gdsFileSize(PyObject *self, PyObject *args)
+{
+	int file_id;
+	if (!PyArg_ParseTuple(args, "i", &file_id))
+		return NULL;
+
+	double sz;
+	COREARRAY_TRY
+		sz = ID2File(file_id)->GetFileSize();
+	COREARRAY_CATCH
+	return Py_BuildValue("d", sz);
+}
+
+
+/// Clean up fragments of a GDS file
+static PyObject* gdsTidyUp(PyObject *self, PyObject *args)
+{
+	const char *fn;
+	int verbose;
+	if (!PyArg_ParseTuple(args, "s" BSTR, &fn, &verbose))
+		return NULL;
+
+	COREARRAY_TRY
+
+		CdGDSFile file(fn, CdGDSFile::dmOpenReadWrite);
+		C_Int64 old_s = file.GetFileSize();
+		if (verbose)
+		{
+			printf("Clean up the fragments of GDS file:\n");
+			printf("    open the file '%s' (%s)\n", fn, fmt_size(old_s).c_str());
+			printf("    # of fragments: %d\n", file.GetNumOfFragment());
+			printf("    save to '%s.tmp'\n", fn);
+			fflush(stdout);
+		}
+		file.TidyUp(false);
+		if (verbose)
+		{
+			C_Int64 new_s = file.GetFileSize();
+			printf("    rename '%s.tmp' (%s, reduced: %s)\n", fn,
+				fmt_size(new_s).c_str(), fmt_size(old_s-new_s).c_str());
+			printf("    # of fragments: %d\n", file.GetNumOfFragment());
+			fflush(stdout);
+		}
+
+	COREARRAY_CATCH
+	Py_RETURN_NONE;
+}
+
+
+/// Clean up fragments of a GDS file
+static PyObject* gdsRoot(PyObject *self, PyObject *args)
+{
+	int file_id;
+	if (!PyArg_ParseTuple(args, "i", &file_id))
+		return NULL;
+
+	int idx;
+	Py_ssize_t ptr;
+	COREARRAY_TRY
+		set_obj(&ID2File(file_id)->Root(), idx, ptr);
+	COREARRAY_CATCH
+
+	return Py_BuildValue("in", idx, ptr);
+}
+
+
+
+// ----------------------------------------------------------------------------
+// File Structure Operations
+// ----------------------------------------------------------------------------
+
+/// Enumerate the names of its child nodes
+static PyObject* gdsnListName(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	int inc_hidden;
+	if (!PyArg_ParseTuple(args, "in" BSTR, &nidx, &ptr_int, &inc_hidden))
+		return NULL;
+
+	COREARRAY_TRY
+
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		CdGDSAbsFolder *Dir = dynamic_cast<CdGDSAbsFolder*>(Obj);
+		if (Dir)
+		{
+			vector<string> List;
+			for (int i=0; i < Dir->NodeCount(); i++)
+			{
+				CdGDSObj *Obj = Dir->ObjItemEx(i);
+				if (Obj)
+				{
+					if (inc_hidden)
+					{
+						List.push_back(RawText(Obj->Name()));
+					} else {
+						if (!Obj->GetHidden() &&
+							!Obj->Attribute().HasName(ASC16("R.invisible")))
+						{
+							List.push_back(RawText(Obj->Name()));
+						}
+					}
+				}
+			}
+
+			PyObject *rv_ans = PyList_New(List.size());
+			for (size_t i=0; i < List.size(); i++)
+			{
+				PyList_SetItem(rv_ans, i, PYSTR_SET2(
+					List[i].c_str(), List[i].size()));
+			}
+
+			return Py_BuildValue("O", rv_ans);
+
+		} else {
+			throw ErrGDSObj("It is not a folder.");
+		}
+
+	COREARRAY_CATCH
+	return NULL;
+}
+
+
+
+
 } // extern "C"
 
 
@@ -305,9 +526,16 @@ static char helloworld_docs[] =
 
 static PyMethodDef module_methods[] = {
     { "hello", (PyCFunction)helloworld, METH_NOARGS, helloworld_docs },
+	// file operations
     { "create_gds", (PyCFunction)gdsCreateGDS, METH_VARARGS, NULL },
     { "open_gds", (PyCFunction)gdsOpenGDS, METH_VARARGS, NULL },
     { "close_gds", (PyCFunction)gdsCloseGDS, METH_VARARGS, NULL },
+    { "sync_gds", (PyCFunction)gdsSyncGDS, METH_VARARGS, NULL },
+    { "filesize", (PyCFunction)gdsFileSize, METH_VARARGS, NULL },
+    { "tidy_up", (PyCFunction)gdsTidyUp, METH_VARARGS, NULL },
+    { "root_gds", (PyCFunction)gdsRoot, METH_VARARGS, NULL },
+	// file structure operations
+    { "ls_gdsn", (PyCFunction)gdsnListName, METH_VARARGS, NULL },
     { NULL }
 };
 

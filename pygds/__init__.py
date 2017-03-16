@@ -5,6 +5,13 @@ import pygds.ccall as cc
 
 # ===========================================================================
 
+def cleanup_gds(filename, verbose=True):
+	cc.tidy_up(filename, verbose)
+
+
+
+# ===========================================================================
+
 class gdsfile:
 	"""
 	Common base class for GDS files
@@ -12,7 +19,7 @@ class gdsfile:
 
 	def __init__(self):
 		self.filename = ''
-		self.fileid = -1;
+		self.fileid = -1
 
 	def __del__(self):
 		self.close()
@@ -30,6 +37,20 @@ class gdsfile:
 		self.fileid = -1
 		self.filename = ''
 
+	def sync(self):
+		cc.sync_gds(self.fileid)
+
+	def filesize(self):
+		return cc.filesize(self.fileid)
+
+	def root(self):
+		v = gdsnode()
+		(v.idx, v.pid) = cc.root_gds(self.fileid)
+		return v
+
+	def index(self, *idx):
+		return 2
+
 	def show(self):
 		print("file id: %d" % self.fileid)
 
@@ -39,13 +60,21 @@ class gdsfile:
 
 # ===========================================================================
 
+# TODO: require Py_ssize_t (Python >=2.5)
+
+
 class gdsnode:
 	"""
 	Common base class for GDS node
 	"""
 
 	def __init__(self):
-		self.ok = -1;
+		self.idx = -1
+		self.pid = 0
+
+	def ls(self, inc_hidden=False):
+		return cc.ls_gdsn(self.idx, self.pid, inc_hidden)
+
 
 	def show(self):
 		print("ok: %d" % self.ok)

@@ -76,10 +76,10 @@ namespace pygds
 
 
 	/// a list of GDS objects
-	COREARRAY_DLL_LOCAL vector<PdGDSObj> GDSFMT_GDSObj_List;
+	COREARRAY_DLL_LOCAL vector<PdGDSObj> PYGDS_GDSObj_List;
 
 	/// mapping from GDS objects to indices
-	COREARRAY_DLL_LOCAL map<PdGDSObj, int> GDSFMT_GDSObj_Map;
+	COREARRAY_DLL_LOCAL map<PdGDSObj, int> PYGDS_GDSObj_Map;
 
 
 	/// initialization and finalization
@@ -90,14 +90,14 @@ namespace pygds
 		CInitObject()
 		{
 			memset(PYGDS_GDS_Files, 0, sizeof(PYGDS_GDS_Files));
-			GDSFMT_GDSObj_List.reserve(1024);
+			PYGDS_GDSObj_List.reserve(1024);
 		}
 
 		/// finalization
 		~CInitObject()
 		{
-			GDSFMT_GDSObj_List.clear();
-			GDSFMT_GDSObj_Map.clear();
+			PYGDS_GDSObj_List.clear();
+			PYGDS_GDSObj_Map.clear();
 
 			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 			{
@@ -221,9 +221,9 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 	{
 		PYGDS_GDS_Files[gds_idx] = NULL;
 
-		// delete GDS objects in GDSFMT_GDSObj_List and GDSFMT_GDSObj_Map
-		vector<PdGDSObj>::iterator p = GDSFMT_GDSObj_List.begin();
-		for (; p != GDSFMT_GDSObj_List.end(); p++)
+		// delete GDS objects in PYGDS_GDSObj_List and PYGDS_GDSObj_Map
+		vector<PdGDSObj>::iterator p = PYGDS_GDSObj_List.begin();
+		for (; p != PYGDS_GDSObj_List.end(); p++)
 		{
 			if (*p != NULL)
 			{
@@ -238,7 +238,7 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 				// Obj is the root, and then get the GDS file
 				if (Obj->GDSFile() == File)
 				{
-					GDSFMT_GDSObj_Map.erase(*p);
+					PYGDS_GDSObj_Map.erase(*p);
 					*p = NULL;
 				}
 			}

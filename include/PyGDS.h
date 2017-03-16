@@ -98,12 +98,18 @@ extern "C" {
 	// ==================================================================
 
 	#if (PY_MAJOR_VERSION>3) || (PY_MAJOR_VERSION==3 && PY_MINOR_VERSION>=3)
-	#define BSTR    "p"
+	#   define BSTR    "p"
 	#else
-	#define BSTR    "i"
+	#   define BSTR    "i"
 	#endif
 
-
+	#if (PY_MAJOR_VERSION >= 3)
+	#   define PYSTR_SET(s)          PyUnicode_FromString(s)
+	#   define PYSTR_SET2(s, len)    PyUnicode_FromStringAndSize(s, len)
+	#else
+	#   define PYSTR_SET(s)          PyString_FromString(s)
+	#   define PYSTR_SET2(s, len)    PyString_FromStringAndSize(s, len)
+	#endif
 
 
 
@@ -111,10 +117,10 @@ extern "C" {
 	// ==================================================================
 
 	/// the maximum number of GDS files
-	#define PYGDS_MAX_NUM_GDS_FILES     1024
+	#define PYGDS_MAX_NUM_GDS_FILES    1024
 
 	/// the maximun number of dimensions in GDS array
-	#define GDS_MAX_NUM_DIMENSION        256
+	#define GDS_MAX_NUM_DIMENSION      256
 
 
 /*

@@ -47,7 +47,7 @@ namespace CoreArray
 
 	/// try block for CoreArray library
 	#define COREARRAY_TRY    \
-		bool has_error = false; \
+		int has_error = 0; \
 		CORE_TRY
 
 
@@ -64,14 +64,30 @@ namespace CoreArray
 			GDS_SetError("unknown error!"); cmd; \
 		} \
 
+
 	/// catch block for CoreArray library
 	#define COREARRAY_CATCH    \
-		CORE_CATCH(has_error = true); \
+		} \
+		catch (ErrGDSFmt &E) { \
+			GDS_SetError(E.what()); has_error = 1; \
+		} \
+		catch (std::exception &E) { \
+			GDS_SetError(E.what()); has_error = 2; \
+		} \
+		catch (const char *E) { \
+			GDS_SetError(E); has_error = 2; \
+		} \
+		catch (...) { \
+			GDS_SetError("unknown error!"); has_error = 2; \
+		} \
 		if (has_error) \
 		{ \
-			PyErr_SetString(PyExc_IOError, GDS_GetError()); \
+			PyObject *type = (has_error==1) ? PyExc_ValueError : PyExc_IOError; \
+			PyErr_SetString(type, GDS_GetError()); \
 			return NULL; \
 		}
+
+
 
 
 
