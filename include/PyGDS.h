@@ -104,6 +104,7 @@ extern "C" {
 	#endif
 
 	#if (PY_MAJOR_VERSION >= 3)
+    #   define PyInt_FromLong        PyLong_FromLong
 	#   define PYSTR_SET(s)          PyUnicode_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyUnicode_FromStringAndSize(s, len)
 	#else
@@ -137,10 +138,14 @@ extern "C" {
 	extern SEXP GDS_R_Obj2SEXP(PdGDSObj Obj);
 	/// convert "SEXP (ObjSrc)  -->  SEXP (ObjDst)", (requiring >= v1.5.8)
 	extern void GDS_R_Obj_SEXP2SEXP(SEXP ObjDst, SEXP ObjSrc);
+*/
+
 	/// return true, if Obj is a logical object in R
 	extern C_BOOL GDS_R_Is_Logical(PdGDSObj Obj);
 	/// return true, if Obj is a factor variable
 	extern C_BOOL GDS_R_Is_Factor(PdGDSObj Obj);
+
+/*
 	/// return 1 used in UNPROTECT and set levels in 'Val' if Obj is a factor in R; otherwise return 0
 	extern int GDS_R_Set_IfFactor(PdGDSObj Obj, SEXP Val);
 	/// return an R data object from a GDS object, allowing raw-type data

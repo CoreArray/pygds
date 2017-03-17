@@ -87,7 +87,10 @@ namespace CoreArray
 			return NULL; \
 		}
 
-
+	/// catch block for CoreArray library
+	#define COREARRAY_CATCH_NONE    \
+		COREARRAY_CATCH    \
+		Py_RETURN_NONE;
 
 
 

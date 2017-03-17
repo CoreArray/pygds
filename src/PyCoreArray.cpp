@@ -250,6 +250,29 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 
 
 // ===========================================================================
+// R objects
+
+/// return true, if Obj is a logical object in R
+COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Logical(PdGDSObj Obj)
+{
+	return Obj->Attribute().HasName(ASC16("R.logical"));
+}
+
+/// return true, if Obj is a factor variable
+COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Factor(PdGDSObj Obj)
+{
+	if (Obj->Attribute().HasName(ASC16("R.class")) &&
+		Obj->Attribute().HasName(ASC16("R.levels")))
+	{
+		return (Obj->Attribute()[ASC16("R.class")].GetStr8() == "factor");
+	} else
+		return false;
+}
+
+
+
+
+// ===========================================================================
 // functions for error
 
 /// the last error message

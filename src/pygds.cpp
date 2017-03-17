@@ -313,7 +313,7 @@ static PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 		file_id = GetFileIndex(file);
 	COREARRAY_CATCH
 
-	return Py_BuildValue("i", file_id);
+	return PyInt_FromLong(file_id);
 }
 
 
@@ -347,7 +347,7 @@ static PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 		file_id = GetFileIndex(file);
 	COREARRAY_CATCH
 
-	return Py_BuildValue("i", file_id);
+	return PyInt_FromLong(file_id);
 }
 
 
@@ -361,8 +361,7 @@ static PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 	COREARRAY_TRY
 		if (file_id >= 0)
 			GDS_File_Close(ID2File(file_id));
-	COREARRAY_CATCH
-	Py_RETURN_NONE;
+	COREARRAY_CATCH_NONE
 }
 
 
@@ -375,8 +374,7 @@ static PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 
 	COREARRAY_TRY
 		ID2File(file_id)->SyncFile();
-	COREARRAY_CATCH
-	Py_RETURN_NONE;
+	COREARRAY_CATCH_NONE
 }
 
 
@@ -425,8 +423,7 @@ static PyObject* gdsTidyUp(PyObject *self, PyObject *args)
 			fflush(stdout);
 		}
 
-	COREARRAY_CATCH
-	Py_RETURN_NONE;
+	COREARRAY_CATCH_NONE
 }
 
 
@@ -516,18 +513,17 @@ static PyObject* gdsnListName(PyObject *self, PyObject *args)
 			PyObject *rv_ans = PyList_New(List.size());
 			for (size_t i=0; i < List.size(); i++)
 			{
-				PyList_SetItem(rv_ans, i, PYSTR_SET2(
-					List[i].c_str(), List[i].size()));
+				PyObject *x = PYSTR_SET2(List[i].c_str(), List[i].size());
+				PyList_SetItem(rv_ans, i, x);
 			}
 
-			return Py_BuildValue("O", rv_ans);
+			return rv_ans;
 
 		} else {
 			throw ErrGDSObj("It is not a folder.");
 		}
 
-	COREARRAY_CATCH
-	return NULL;
+	COREARRAY_CATCH_NONE
 }
 
 
@@ -575,19 +571,166 @@ static PyObject* gdsnName(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "in" BSTR, &nidx, &ptr_int, &full))
 		return NULL;
 
-	string nm;
 	COREARRAY_TRY
 		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		string nm;
 		if (full)
 			nm = RawText(Obj->FullName());
 		else
 			nm = RawText(Obj->Name());
-	COREARRAY_CATCH
-
-	return Py_BuildValue("s", nm.c_str());
+		return Py_BuildValue("s", nm.c_str());
+	COREARRAY_CATCH_NONE
 }
 
 
+/// Get the name of a GDS node
+static PyObject* gdsnRename(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	const char *newname;
+	if (!PyArg_ParseTuple(args, "ins", &nidx, &ptr_int, &newname))
+		return NULL;
+
+	COREARRAY_TRY
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		Obj->SetName(UTF16Text(newname));
+	COREARRAY_CATCH_NONE
+}
+
+
+/// Get the description of a GDS node
+static PyObject* gdsnDesp(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	if (!PyArg_ParseTuple(args, "in", &nidx, &ptr_int))
+		return NULL;
+
+	COREARRAY_TRY
+
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+
+		string nm  = RawText(Obj->Name());
+		string nm2 = RawText(Obj->FullName());
+		string ste = Obj->dName();
+
+		string tra = Obj->dTraitName();
+		if (dynamic_cast<CdGDSVirtualFolder*>(Obj))
+			tra = RawText(((CdGDSVirtualFolder*)Obj)->LinkFileName());
+
+		string type = "Unknown";
+		if (dynamic_cast<CdGDSLabel*>(Obj))
+			type = "Label";
+		else if (dynamic_cast<CdGDSFolder*>(Obj))
+			type = "Folder";
+		else if (dynamic_cast<CdGDSVirtualFolder*>(Obj))
+			type = "VFolder";
+		else if (dynamic_cast<CdGDSStreamContainer*>(Obj))
+			type = "Raw";
+		else if (dynamic_cast<CdContainer*>(Obj))
+		{
+			CdContainer* nn = static_cast<CdContainer*>(Obj);
+			C_SVType sv = nn->SVType();
+			if (COREARRAY_SV_INTEGER(sv))
+			{
+				if (GDS_R_Is_Factor(Obj))
+					type = "Factor";
+				else if (GDS_R_Is_Logical(Obj))
+					type = "Logical";
+				else
+					type = "Integer";
+			} else if (COREARRAY_SV_FLOAT(sv))
+				type = "Real";
+			else if (COREARRAY_SV_STRING(sv))
+				type = "String";
+		}
+
+		// dim, the dimension of data field
+		PyObject *dim;
+		string encoder, compress;
+		double cpratio = NaN;
+		if (dynamic_cast<CdAbstractArray*>(Obj))
+		{
+			CdAbstractArray *_Obj = (CdAbstractArray*)Obj;
+
+			dim = PyList_New(_Obj->DimCnt());
+			for (int i=0; i < _Obj->DimCnt(); i++)
+				PyList_SetItem(dim, i, PyInt_FromLong(_Obj->GetDLen(i)));
+
+			if (_Obj->PipeInfo())
+			{
+				encoder = _Obj->PipeInfo()->Coder();
+				compress = _Obj->PipeInfo()->CoderParam();
+				if (_Obj->PipeInfo()->StreamTotalIn() > 0)
+				{
+					cpratio = (double)_Obj->PipeInfo()->StreamTotalOut() /
+						_Obj->PipeInfo()->StreamTotalIn();
+				}
+			}
+		} else {
+			dim = Py_None; Py_INCREF(dim);
+		}
+
+		// object size
+		double size = NaN;
+		if (dynamic_cast<CdContainer*>(Obj))
+		{
+			CdContainer* p = static_cast<CdContainer*>(Obj);
+			p->Synchronize();
+			size = p->GDSStreamSize();
+		} else if (dynamic_cast<CdGDSStreamContainer*>(Obj))
+		{
+			CdGDSStreamContainer *_Obj = (CdGDSStreamContainer*)Obj;
+			if (_Obj->PipeInfo())
+				size = _Obj->PipeInfo()->StreamTotalIn();
+			else
+				size = _Obj->GetSize();
+		}
+
+		// good
+		int GoodFlag = 1;
+		if (dynamic_cast<CdGDSVirtualFolder*>(Obj))
+		{
+			CdGDSVirtualFolder *v = (CdGDSVirtualFolder*)Obj;
+			GoodFlag = v->IsLoaded(true) ? 1 : 0;
+		} else if (dynamic_cast<CdGDSUnknown*>(Obj))
+		{
+			GoodFlag = 0;
+		}
+
+		// hidden
+		int hidden_flag = Obj->GetHidden() ||
+			Obj->Attribute().HasName(ASC16("R.invisible"));
+
+		// message
+		string msg;
+		if (dynamic_cast<CdGDSVirtualFolder*>(Obj))
+		{
+			CdGDSVirtualFolder *v = (CdGDSVirtualFolder*)Obj;
+			v->IsLoaded(true);
+			msg = v->ErrMsg().c_str();
+		}
+
+		return Py_BuildValue(
+			"{s:s,s:s,s:s,s:s,s:s,s:N,s:s,s:s,s:d,s:d,s:N,s:N,s:s}",
+			"name",     nm.c_str(),
+			"fullname", nm2.c_str(),
+			"storage",  ste.c_str(),
+			"trait",    tra.c_str(),
+			"type",     type.c_str(),
+			"dim",      dim,
+			"encoder",  encoder.c_str(),
+			"compress", compress.c_str(),
+			"cpratio",  cpratio,
+			"size",     size,
+			"good",     PyBool_FromLong(GoodFlag),
+			"hidden",   PyBool_FromLong(hidden_flag),
+			"message",  msg.c_str()
+		);
+
+	COREARRAY_CATCH_NONE
+}
 
 
 
@@ -620,10 +763,13 @@ static PyMethodDef module_methods[] = {
     { "tidy_up", (PyCFunction)gdsTidyUp, METH_VARARGS, NULL },
     { "root_gds", (PyCFunction)gdsRoot, METH_VARARGS, NULL },
     { "index_gds", (PyCFunction)gdsIndex, METH_VARARGS, NULL },
+
 	// file structure operations
     { "ls_gdsn", (PyCFunction)gdsnListName, METH_VARARGS, NULL },
     { "index_gdsn", (PyCFunction)gdsnIndex, METH_VARARGS, NULL },
     { "name_gdsn", (PyCFunction)gdsnName, METH_VARARGS, NULL },
+    { "rename_gdsn", (PyCFunction)gdsnRename, METH_VARARGS, NULL },
+    { "desp_gdsn", (PyCFunction)gdsnDesp, METH_VARARGS, NULL },
 
     { NULL }
 };

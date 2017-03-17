@@ -92,10 +92,10 @@ class gdsnode:
 		return cc.name_gdsn(self.idx, self.pid, full)
 
 	def rename(self, newname):
-		return ""
+		cc.rename_gdsn(self.idx, self.pid, newname)
 
 	def description(self):
-		return ""
+		return cc.desp_gdsn(self.idx, self.pid)
 
 	def show(self):
 		print("ok: %d" % self.ok)
