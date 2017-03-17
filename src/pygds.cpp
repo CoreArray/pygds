@@ -447,6 +447,33 @@ static PyObject* gdsRoot(PyObject *self, PyObject *args)
 }
 
 
+/// Clean up fragments of a GDS file
+static PyObject* gdsIndex(PyObject *self, PyObject *args)
+{
+	int file_id;
+	const char *path;
+	int silent;
+	if (!PyArg_ParseTuple(args, "is" BSTR, &file_id, &path, &silent))
+		return NULL;
+
+	int idx;
+	Py_ssize_t ptr;
+	COREARRAY_TRY
+		CdGDSObj *Obj = ID2File(file_id)->Root().PathEx(UTF16Text(path));
+		if (!Obj && !silent)
+			throw ErrGDSObj("No such GDS node \"%s\"!", path);
+		if (Obj)
+		{
+			set_obj(Obj, idx, ptr);
+		} else {
+			idx = -1; ptr = 0;
+		}
+	COREARRAY_CATCH
+
+	return Py_BuildValue("in", idx, ptr);
+}
+
+
 
 // ----------------------------------------------------------------------------
 // File Structure Operations
@@ -504,6 +531,64 @@ static PyObject* gdsnListName(PyObject *self, PyObject *args)
 }
 
 
+/// Get the GDS node with a given path
+static PyObject* gdsnIndex(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	const char *path;
+	int silent;
+	if (!PyArg_ParseTuple(args, "ins" BSTR, &nidx, &ptr_int, &path, &silent))
+		return NULL;
+
+	int idx;
+	Py_ssize_t ptr;
+	COREARRAY_TRY
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		CdGDSAbsFolder *Dir = dynamic_cast<CdGDSAbsFolder*>(Obj);
+		if (Dir)
+		{
+			Obj = Dir->PathEx(UTF16Text(path));
+			if (!Obj && !silent)
+				throw ErrGDSObj("No such GDS node \"%s\"!", path);
+			if (Obj)
+			{
+				set_obj(Obj, idx, ptr);
+			} else {
+				idx = -1; ptr = 0;
+			}
+		} else {
+			throw ErrGDSObj("It is not a folder.");
+		}
+	COREARRAY_CATCH
+
+	return Py_BuildValue("in", idx, ptr);
+}
+
+
+/// Get the name of a GDS node
+static PyObject* gdsnName(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	int full;
+	if (!PyArg_ParseTuple(args, "in" BSTR, &nidx, &ptr_int, &full))
+		return NULL;
+
+	string nm;
+	COREARRAY_TRY
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		if (full)
+			nm = RawText(Obj->FullName());
+		else
+			nm = RawText(Obj->Name());
+	COREARRAY_CATCH
+
+	return Py_BuildValue("s", nm.c_str());
+}
+
+
+
 
 
 } // extern "C"
@@ -534,8 +619,12 @@ static PyMethodDef module_methods[] = {
     { "filesize", (PyCFunction)gdsFileSize, METH_VARARGS, NULL },
     { "tidy_up", (PyCFunction)gdsTidyUp, METH_VARARGS, NULL },
     { "root_gds", (PyCFunction)gdsRoot, METH_VARARGS, NULL },
+    { "index_gds", (PyCFunction)gdsIndex, METH_VARARGS, NULL },
 	// file structure operations
     { "ls_gdsn", (PyCFunction)gdsnListName, METH_VARARGS, NULL },
+    { "index_gdsn", (PyCFunction)gdsnIndex, METH_VARARGS, NULL },
+    { "name_gdsn", (PyCFunction)gdsnName, METH_VARARGS, NULL },
+
     { NULL }
 };
 

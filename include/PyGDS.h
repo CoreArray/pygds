@@ -305,48 +305,6 @@ extern "C" {
 
 
 	// ==================================================================
-	// Functions for parallel computing
-
-	/// initialize the mutex object
-	extern PdThreadMutex GDS_Parallel_InitMutex();
-	/// finalize the mutex object
-	extern void GDS_Parallel_DoneMutex(PdThreadMutex Obj);
-	/// lock the mutex object
-	extern void GDS_Parallel_LockMutex(PdThreadMutex Obj);
-	/// lock the mutex object
-	extern void GDS_Parallel_LockMutex(PdThreadMutex Obj);
-	/// attempt to lock the mutex object, return true if succeed
-	extern C_BOOL GDS_Parallel_TryLockMutex(PdThreadMutex Obj);
-	/// unlock the mutex object
-	extern void GDS_Parallel_UnlockMutex(PdThreadMutex Obj);
-
-	/// initialize the condition object
-	extern PdThreadCondition GDS_Parallel_InitCondition();
-	/// finalize the condition object
-	extern void GDS_Parallel_DoneCondition(PdThreadCondition Obj);
-	/// signal a condition object
-	extern void GDS_Parallel_SignalCondition(PdThreadCondition Obj);
-	/// broadcast a condition object
-	extern void GDS_Parallel_BroadcastCondition(PdThreadCondition Obj);
-	/// wait for a condition object to become signaled
-	extern void GDS_Parallel_WaitCondition(PdThreadCondition Obj, PdThreadMutex Mutex);
-
-	/// initialize the suspending object
-	extern PdThreadsSuspending GDS_Parallel_InitSuspend();
-	/// finalize the suspending object
-	extern void GDS_Parallel_DoneSuspend(PdThreadsSuspending Obj);
-	/// suspend the object
-	extern void GDS_Parallel_Suspend(PdThreadsSuspending Obj);
-	/// wake up the object
-	extern void GDS_Parallel_WakeUp(PdThreadsSuspending Obj);
-
-	/// run the function with multiple threads
-	extern void GDS_Parallel_RunThreads(
-		void (*Proc)(PdThread, int, void*), void *Param, int nThread);
-
-
-
-	// ==================================================================
 	// Functions for machine
 
 	/// return the number of available (logical) cores in the system

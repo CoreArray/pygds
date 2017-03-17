@@ -48,8 +48,13 @@ class gdsfile:
 		(v.idx, v.pid) = cc.root_gds(self.fileid)
 		return v
 
-	def index(self, *idx):
-		return 2
+	def index(self, path, silent=False):
+		v = gdsnode()
+		v.idx, v.pid = cc.index_gds(self.fileid, path, silent)
+		if v.idx >= 0:
+			return v
+		else:
+			return None
 
 	def show(self):
 		print("file id: %d" % self.fileid)
@@ -75,6 +80,22 @@ class gdsnode:
 	def ls(self, inc_hidden=False):
 		return cc.ls_gdsn(self.idx, self.pid, inc_hidden)
 
+	def index(self, path, silent=False):
+		v = gdsnode()
+		v.idx, v.pid = cc.index_gdsn(self.idx, self.pid, path, silent)
+		if v.idx >= 0:
+			return v
+		else:
+			return None
+
+	def name(self, full=False):
+		return cc.name_gdsn(self.idx, self.pid, full)
+
+	def rename(self, newname):
+		return ""
+
+	def description(self):
+		return ""
 
 	def show(self):
 		print("ok: %d" % self.ok)
