@@ -1,5 +1,7 @@
 # import c library
 import pygds.ccall as cc
+# import numpy
+import numpy as np
 
 
 
@@ -13,9 +15,9 @@ def cleanup_gds(filename, verbose=True):
 # ===========================================================================
 
 class gdsfile:
-	"""
+	'''
 	Common base class for GDS files
-	"""
+	'''
 
 	def __init__(self):
 		self.filename = ''
@@ -57,7 +59,7 @@ class gdsfile:
 			return None
 
 	def show(self):
-		print("file id: %d" % self.fileid)
+		print('file id: %d' % self.fileid)
 
 
 
@@ -69,9 +71,9 @@ class gdsfile:
 
 
 class gdsnode:
-	"""
+	'''
 	Common base class for GDS node
-	"""
+	'''
 
 	def __init__(self):
 		self.idx = -1
@@ -97,9 +99,81 @@ class gdsnode:
 	def description(self):
 		return cc.desp_gdsn(self.idx, self.pid)
 
-	def show(self):
-		print("ok: %d" % self.ok)
 
+	def show(self, all=False, attribute=False, expand=True):
 
+		def enum(node, prefix, fullname, last, expand):
+			d = node.description()
+			if d['type'] == 'Label':
+				lText = ' '; rText = ' '
+			elif d['type'] == 'VFolder':
+				if d['good']:
+					lText = '[ -->'; rText = ']'
+				else:
+					lText = '[ -X-'; rText = ']'; expand = False
+			elif d['type'] == 'Folder':
+				lText = '['; rText = ']'
+			elif d['type'] == 'Unknown':
+				lText = '	 -X-'; rText = ''; expand = False
+			else:
+				lText = '{'; rText = '}'
+
+			s = ''.join([ prefix, '+ ', node.name(fullname), '   ', lText,
+				' ', d['trait'] ])
+
+			# if logical, factor, list, or data.frame
+			if d['type'] == 'Logical':
+				s = s + ',logical'
+			elif d['type'] == 'Factor':
+				s = s + ',factor'
+
+			# show the dimension
+			if d['dim'] != None:
+				s = s + ' ' + ('x'.join([str(i) for i in d['dim']]))
+
+			# show compression
+			if d['encoder'] != '':
+				if attribute:
+					s = s + ' ' + d['compress']
+				else:
+					s = s + ' ' + d['encoder']
+
+			if np.isfinite(d['cpratio']):
+				if d['cpratio'] >= 0.10:
+					s = s + ('(%0.1f%%)' % (100*d['cpratio']))
+				else:
+					s = s + ('(%0.2f%%)' % (100*d['cpratio']))
+
+			if np.isfinite(d['size']):
+				s = s + ', %gB' % d['size']
+
+			s = s + ' ' + rText
+			print(s)
+
+			if expand and d['type']=='Folder':
+				nm = node.ls(all)
+				for i in range(len(nm)):
+					n = len(prefix)
+					if i < len(nm)-1:
+						if n >= 3:
+							if last:
+								s = prefix[:n-3] + '   |--'
+							else:
+								s = prefix[:n-3] + '|  |--'
+						else:
+							s = '|--'
+					else:
+						if n >= 3:
+							if last:
+								s = prefix[:n-3] + '   \\--'
+							else:
+								s = prefix[:n-3] + '|  \\--'
+						else:
+							s = '\\--'
+					enum(node.index(nm[i]), s, False, i>=len(nm)-1, expand)
+
+			return None
+
+		enum(self, "", True, True, expand)
 
 
