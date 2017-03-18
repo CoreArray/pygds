@@ -99,10 +99,12 @@ class gdsnode:
 	def description(self):
 		return cc.desp_gdsn(self.idx, self.pid)
 
+	def getattr(self):
+		return cc.getattr_gdsn(self.idx, self.pid)
 
 	def show(self, all=False, attribute=False, expand=True):
 
-		def enum(node, prefix, fullname, last, expand):
+		def enum(node, prefix, fullname, last, attr, expand):
 			d = node.description()
 			if d['type'] == 'Label':
 				lText = ' '; rText = ' '
@@ -144,10 +146,26 @@ class gdsnode:
 				else:
 					s = s + ('(%0.2f%%)' % (100*d['cpratio']))
 
-			if np.isfinite(d['size']):
-				s = s + ', %gB' % d['size']
+			sz = d['size']
+			if np.isfinite(sz):
+				if sz >= 1073741824:
+					s = s + ', %.1fG' % (sz/1073741824)
+				elif sz >= 1048576:
+					s = s + ', %.1fM' % (sz/1048576)
+				elif sz >= 1024:
+					s = s + ', %.1fK' % (sz/1024)
+				else:
+					s = s + ', %gB' % sz
 
 			s = s + ' ' + rText
+
+			# attributes
+			at = node.getattr()
+			if at != None:
+				s = s + ' *'
+				if attr:
+					s = s + '< ' + str(at)
+
 			print(s)
 
 			if expand and d['type']=='Folder':
@@ -170,10 +188,10 @@ class gdsnode:
 								s = prefix[:n-3] + '|  \\--'
 						else:
 							s = '\\--'
-					enum(node.index(nm[i]), s, False, i>=len(nm)-1, expand)
+					enum(node.index(nm[i]), s, False, i>=len(nm)-1, attr, expand)
 
 			return None
 
-		enum(self, "", True, True, expand)
+		enum(self, "", True, True, attribute, expand)
 
 

@@ -734,6 +734,65 @@ static PyObject* gdsnDesp(PyObject *self, PyObject *args)
 
 
 
+// ----------------------------------------------------------------------------
+// Attribute Operations
+// ----------------------------------------------------------------------------
+
+static PyObject* any2obj(CdAny &Obj)
+{
+	if (Obj.IsInt())
+	{
+		return PyInt_FromLong(Obj.GetInt32());
+	} else if (Obj.IsFloat())
+	{
+		return PyFloat_FromDouble(Obj.GetFloat64());
+	} else if (Obj.IsString())
+	{
+		const UTF8String &s = Obj.GetStr8();
+		return PYSTR_SET2(s.c_str(), s.size());
+	} else if (Obj.IsBool())
+	{
+		return PyBool_FromLong(Obj.GetBool() ? 1 : 0);
+	} else if (Obj.IsArray())
+	{
+		const size_t n = Obj.GetArrayLength();
+		CdAny *p = Obj.GetArray();
+		PyObject *rv_ans = PyList_New(n);
+		for (size_t i=0; i < n; i++)
+			PyList_SetItem(rv_ans, i, any2obj(*p++));
+		return rv_ans;
+	} else
+		Py_RETURN_NONE;
+}
+
+/// Get the attribute(s) of a GDS node
+static PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	if (!PyArg_ParseTuple(args, "in", &nidx, &ptr_int))
+		return NULL;
+
+	COREARRAY_TRY
+		CdGDSObj *Obj = get_obj(nidx, ptr_int);
+		if (Obj->Attribute().Count() > 0)
+		{
+			const size_t n = Obj->Attribute().Count();
+			PyObject *rv_ans = PyDict_New();
+			for (size_t i=0; i < n; i++)
+			{
+				PyObject *x = any2obj(Obj->Attribute()[i]);
+				PyDict_SetItemString(rv_ans,
+					RawText(Obj->Attribute().Names(i)).c_str(), x);
+				Py_DECREF(x);
+			}
+			return rv_ans;
+		}
+	COREARRAY_CATCH_NONE
+}
+
+
+
 } // extern "C"
 
 
@@ -770,6 +829,9 @@ static PyMethodDef module_methods[] = {
     { "name_gdsn", (PyCFunction)gdsnName, METH_VARARGS, NULL },
     { "rename_gdsn", (PyCFunction)gdsnRename, METH_VARARGS, NULL },
     { "desp_gdsn", (PyCFunction)gdsnDesp, METH_VARARGS, NULL },
+
+	// attribute operations
+    { "getattr_gdsn", (PyCFunction)gdsnGetAttr, METH_VARARGS, NULL },
 
     { NULL }
 };
