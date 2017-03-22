@@ -102,6 +102,13 @@ class gdsnode:
 	def getattr(self):
 		return cc.getattr_gdsn(self.idx, self.pid)
 
+	def read(self, start=None, count=None, cvt=''):
+		return cc.read_gdsn(self.idx, self.pid, start, count, cvt)
+
+	def readex(self):
+		return 1
+
+
 	def show(self, all=False, attribute=False, expand=True):
 
 		def enum(node, prefix, fullname, last, attr, expand):
@@ -193,5 +200,4 @@ class gdsnode:
 			return None
 
 		enum(self, "", True, True, attribute, expand)
-
 

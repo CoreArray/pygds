@@ -34,7 +34,7 @@
 
 namespace pygds
 {
-	extern PdGDSFile PYGDS_GDS_Files[];
+	extern PdGDSFile PKG_GDS_Files[];
 	extern vector<PdGDSObj> PYGDS_GDSObj_List;
 	extern map<PdGDSObj, int> PYGDS_GDSObj_Map;
 	extern int GetFileIndex(PdGDSFile file, bool throw_error=true);
@@ -192,7 +192,7 @@ static PdGDSFile ID2File(int file_id)
 	if ((file_id < 0) || (file_id >= PYGDS_MAX_NUM_GDS_FILES))
 		throw ErrGDSFmt("The GDS ID (%d) is invalid.", file_id);
 
-	PdGDSFile file = PYGDS_GDS_Files[file_id];
+	PdGDSFile file = PKG_GDS_Files[file_id];
 	if (file == NULL)
 		throw ErrGDSFmt("The GDS file is closed or uninitialized.");
 
@@ -284,7 +284,7 @@ static CdGDSObj* get_obj(int idx, Py_ssize_t ptr_int)
 // ----------------------------------------------------------------------------
 
 /// Create a GDS file
-static PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int allow_dup;
@@ -298,9 +298,9 @@ static PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 			UTF8String FName = UTF8Text(fn);
 			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 			{
-				if (PYGDS_GDS_Files[i])
+				if (PKG_GDS_Files[i])
 				{
-					if (PYGDS_GDS_Files[i]->FileName() == FName)
+					if (PKG_GDS_Files[i]->FileName() == FName)
 					{
 						throw ErrGDSFmt(
 							"The file '%s' has been created or opened.", fn);
@@ -318,7 +318,7 @@ static PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 
 
 /// Open an existing GDS file
-static PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int readonly, allow_dup;
@@ -332,9 +332,9 @@ static PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 			UTF8String FName = UTF8Text(fn);
 			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 			{
-				if (PYGDS_GDS_Files[i])
+				if (PKG_GDS_Files[i])
 				{
-					if (PYGDS_GDS_Files[i]->FileName() == FName)
+					if (PKG_GDS_Files[i]->FileName() == FName)
 					{
 						throw ErrGDSFmt(
 							"The file '%s' has been created or opened.", fn);
@@ -352,7 +352,7 @@ static PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 
 
 /// Close the GDS file
-static PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -366,7 +366,7 @@ static PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 
 
 /// Synchronize the GDS file
-static PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -379,7 +379,7 @@ static PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 
 
 /// Get the file size and check the file handler
-static PyObject* gdsFileSize(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsFileSize(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -394,7 +394,7 @@ static PyObject* gdsFileSize(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-static PyObject* gdsTidyUp(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsTidyUp(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int verbose;
@@ -428,7 +428,7 @@ static PyObject* gdsTidyUp(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-static PyObject* gdsRoot(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsRoot(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -445,7 +445,7 @@ static PyObject* gdsRoot(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-static PyObject* gdsIndex(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsIndex(PyObject *self, PyObject *args)
 {
 	int file_id;
 	const char *path;
@@ -477,7 +477,7 @@ static PyObject* gdsIndex(PyObject *self, PyObject *args)
 // ----------------------------------------------------------------------------
 
 /// Enumerate the names of its child nodes
-static PyObject* gdsnListName(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnListName(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -528,7 +528,7 @@ static PyObject* gdsnListName(PyObject *self, PyObject *args)
 
 
 /// Get the GDS node with a given path
-static PyObject* gdsnIndex(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnIndex(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -563,7 +563,7 @@ static PyObject* gdsnIndex(PyObject *self, PyObject *args)
 
 
 /// Get the name of a GDS node
-static PyObject* gdsnName(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnName(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -584,7 +584,7 @@ static PyObject* gdsnName(PyObject *self, PyObject *args)
 
 
 /// Get the name of a GDS node
-static PyObject* gdsnRename(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnRename(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -600,7 +600,7 @@ static PyObject* gdsnRename(PyObject *self, PyObject *args)
 
 
 /// Get the description of a GDS node
-static PyObject* gdsnDesp(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -735,10 +735,139 @@ static PyObject* gdsnDesp(PyObject *self, PyObject *args)
 
 
 // ----------------------------------------------------------------------------
+// Data Operations
+// ----------------------------------------------------------------------------
+
+/// Read data from a GDS node
+COREARRAY_DLL_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	PyObject *start, *count;
+	const char *cvt;
+	if (!PyArg_ParseTuple(args, "inOOs", &nidx, &ptr_int, &start, &count, &cvt))
+		return NULL;
+
+	// check the argument 'cvt'
+	C_SVType sv;
+	if (strcmp(cvt, "") == 0)
+		sv = svCustom;
+	else if (strcmp(cvt, "int8") == 0)
+		sv = svInt8;
+	else if (strcmp(cvt, "uint8") == 0)
+		sv = svUInt8;
+	else if (strcmp(cvt, "int16") == 0)
+		sv = svInt16;
+	else if (strcmp(cvt, "uint16") == 0)
+		sv = svUInt16;
+	else if (strcmp(cvt, "int32") == 0)
+		sv = svInt32;
+	else if (strcmp(cvt, "uint32") == 0)
+		sv = svUInt32;
+	else if (strcmp(cvt, "int64") == 0)
+		sv = svInt64;
+	else if (strcmp(cvt, "uint64") == 0)
+		sv = svUInt64;
+	else if (strcmp(cvt, "float32") == 0)
+		sv = svFloat32;
+	else if (strcmp(cvt, "float64") == 0)
+		sv = svFloat64;
+	else if (strcmp(cvt, "utf8") == 0)
+		sv = svStrUTF8;
+	else if (strcmp(cvt, "utf16") == 0)
+		sv = svStrUTF16;
+	else {
+		PyErr_SetString(PyExc_ValueError, "Invalid 'cvt'.");
+		return NULL;
+	}
+
+	// check the argument 'start'
+	CdAbstractArray::TArrayDim dm_st;
+	int dm_st_n = 0;
+	if (PyList_Check(start))
+	{
+		dm_st_n = PyList_Size(start);
+		for(int i=0; i < dm_st_n; i++)
+			dm_st[i] = PyInt_AsLong(PyList_GetItem(start, i));
+	} else if (start != Py_None)
+	{
+		PyErr_SetString(PyExc_ValueError, "'start' should be None or a list.");
+		return NULL;
+	}
+
+	// check the argument 'count'
+	CdAbstractArray::TArrayDim dm_cnt;
+	int dm_cnt_n = 0;
+	if (PyList_Check(count))
+	{
+		dm_cnt_n = PyList_Size(count);
+		for(int i=0; i < dm_cnt_n; i++)
+			dm_cnt[i] = PyInt_AsLong(PyList_GetItem(count, i));
+	} else if (count != Py_None)
+	{
+		PyErr_SetString(PyExc_ValueError, "'count' should be None or a list.");
+		return NULL;
+	}
+
+	if ((dm_st_n==0 && dm_cnt_n>0) || (dm_st_n>0 && dm_cnt_n==0))
+	{
+		PyErr_SetString(PyExc_ValueError, "'start' and 'count' should be both None.");
+		return NULL;
+	}
+
+
+	COREARRAY_TRY
+
+		CdGDSObj *obj = get_obj(nidx, ptr_int);
+		CdAbstractArray *Obj = dynamic_cast<CdAbstractArray*>(obj);
+		if (Obj == NULL)
+			throw ErrGDSFmt(ERR_NO_DATA);
+
+		C_Int32 *pDS=NULL, *pDL=NULL;
+		if (dm_st_n>0 && dm_cnt_n>0)
+		{
+			int Len = Obj->DimCnt();
+			CdAbstractArray::TArrayDim DCnt;
+			Obj->GetDim(DCnt);
+
+			if (dm_st_n != Len)
+				throw ErrGDSFmt("The length of 'start' is invalid.");
+			for (int i=0; i < Len; i++)
+			{
+				if ((dm_st[i] < 0) || (dm_st[i] >= DCnt[i]))
+					throw ErrGDSFmt("'start' is invalid.");
+			}
+			pDS = dm_st;
+
+			if (dm_cnt_n != Len)
+				throw ErrGDSFmt("The length of 'count' is invalid.");
+			for (int i=0; i < Len; i++)
+			{
+				int &v = dm_cnt[i];
+				if (v == -1)
+					v = DCnt[i] - dm_st[i];
+				if ((v <= 0) || ((dm_st[i]+v) >= DCnt[i]))
+					throw ErrGDSFmt("'count' is invalid.");
+			}
+			pDL = dm_cnt;
+		}
+
+		printf("SV: %d\n", (int)sv);
+		PyObject *p = GDS_Py_Array_Read(Obj, pDS, pDL, NULL, sv);
+		printf("OK\n");
+		return p;
+
+	COREARRAY_CATCH_NONE
+	return NULL;
+}
+
+
+
+// ----------------------------------------------------------------------------
 // Attribute Operations
 // ----------------------------------------------------------------------------
 
-static PyObject* any2obj(CdAny &Obj)
+COREARRAY_DLL_EXPORT PyObject* any2obj(CdAny &Obj)
 {
 	if (Obj.IsInt())
 	{
@@ -766,7 +895,7 @@ static PyObject* any2obj(CdAny &Obj)
 }
 
 /// Get the attribute(s) of a GDS node
-static PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
+COREARRAY_DLL_EXPORT PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -793,26 +922,13 @@ static PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
 
 
 
-} // extern "C"
+// ----------------------------------------------------------------------------
+// Register routines
+// ----------------------------------------------------------------------------
 
-
-
-
-
-
-extern "C"
-{
-
-static PyObject* helloworld(PyObject* self)
-{
-    return Py_BuildValue("s", "Hello, Python extensions!!");
-}
-
-static char helloworld_docs[] =
-    "helloworld(): Any message you want to put here!!\n";
+extern COREARRAY_DLL_LOCAL void Py_CoreArray_Init();
 
 static PyMethodDef module_methods[] = {
-    { "hello", (PyCFunction)helloworld, METH_NOARGS, helloworld_docs },
 	// file operations
     { "create_gds", (PyCFunction)gdsCreateGDS, METH_VARARGS, NULL },
     { "open_gds", (PyCFunction)gdsOpenGDS, METH_VARARGS, NULL },
@@ -830,10 +946,14 @@ static PyMethodDef module_methods[] = {
     { "rename_gdsn", (PyCFunction)gdsnRename, METH_VARARGS, NULL },
     { "desp_gdsn", (PyCFunction)gdsnDesp, METH_VARARGS, NULL },
 
+	// data operations
+    { "read_gdsn", (PyCFunction)gdsnRead, METH_VARARGS, NULL },
+
 	// attribute operations
     { "getattr_gdsn", (PyCFunction)gdsnGetAttr, METH_VARARGS, NULL },
 
-    { NULL }
+	// end
+	{ NULL, NULL, 0, NULL }
 };
 
 
@@ -851,7 +971,8 @@ static struct PyModuleDef ModStruct =
 // Module entry point Python3
 PyMODINIT_FUNC PyInit_ccall()
 {
-    return PyModule_Create(&ModStruct);
+	Py_CoreArray_Init();
+	return PyModule_Create(&ModStruct);
 }
 
 #endif

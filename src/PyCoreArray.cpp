@@ -27,6 +27,7 @@
 #define COREARRAY_PYGDS_PACKAGE
 
 #include <PyGDS_CPP.h>
+#include <numpy/arrayobject.h>
 
 
 namespace pygds
@@ -34,19 +35,16 @@ namespace pygds
 	using namespace std;
 	using namespace CoreArray;
 
-	/// the number of preserved bytes for a pointer to a GDS object
-	#define GDSFMT_NUM_BYTE_FOR_GDSOBJ    (4 + 16)
-
 
 	/// a list of GDS files in the gdsfmt package
-	COREARRAY_DLL_LOCAL PdGDSFile PYGDS_GDS_Files[PYGDS_MAX_NUM_GDS_FILES];
+	COREARRAY_DLL_LOCAL PdGDSFile PKG_GDS_Files[PYGDS_MAX_NUM_GDS_FILES];
 
-	/// get the index in 'PYGDS_GDS_Files' for NULL
+	/// get the index in 'PKG_GDS_Files' for NULL
 	COREARRAY_DLL_LOCAL int GetEmptyFileIndex(bool throw_error=true)
 	{
 		for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 		{
-			if (PYGDS_GDS_Files[i] == NULL)
+			if (PKG_GDS_Files[i] == NULL)
 				return i;
 		}
 		if (throw_error)
@@ -58,12 +56,12 @@ namespace pygds
 		return -1;
 	}
 
-	/// get the index in 'PYGDS_GDS_Files' for file
+	/// get the index in 'PKG_GDS_Files' for file
 	COREARRAY_DLL_LOCAL int GetFileIndex(PdGDSFile file, bool throw_error=true)
 	{
 		for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 		{
-			if (PYGDS_GDS_Files[i] == file)
+			if (PKG_GDS_Files[i] == file)
 				return i;
 		}
 		if (throw_error)
@@ -89,7 +87,7 @@ namespace pygds
 		/// initialization
 		CInitObject()
 		{
-			memset(PYGDS_GDS_Files, 0, sizeof(PYGDS_GDS_Files));
+			memset(PKG_GDS_Files, 0, sizeof(PKG_GDS_Files));
 			PYGDS_GDSObj_List.reserve(1024);
 		}
 
@@ -101,11 +99,11 @@ namespace pygds
 
 			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
 			{
-				PdGDSFile file = PYGDS_GDS_Files[i];
+				PdGDSFile file = PKG_GDS_Files[i];
 				if (file != NULL)
 				{
 					try {
-						PYGDS_GDS_Files[i] = NULL;
+						PKG_GDS_Files[i] = NULL;
 						delete file;
 					}
 					catch (...) { }
@@ -126,21 +124,21 @@ using namespace pygds;
 extern "C"
 {
 
+static const char *ERR_WRITE_ONLY =
+	"Writable only and please call 'readmode()' before reading.";
+
 // ===========================================================================
-// functions for file structure
+// Functions for file structure
 
 COREARRAY_DLL_EXPORT PdGDSFile GDS_File_Create(const char *FileName)
 {
-	// to register CoreArray classes and objects
-	RegisterClass();
-
 	int gds_idx = GetEmptyFileIndex();
 	PdGDSFile file = NULL;
 
 	try {
 		file = new CdGDSFile;
 		file->SaveAsFile(FileName);
-		PYGDS_GDS_Files[gds_idx] = file;
+		PKG_GDS_Files[gds_idx] = file;
 	}
 	catch (std::exception &E) {
 		if (file) delete file;
@@ -161,9 +159,6 @@ COREARRAY_DLL_EXPORT PdGDSFile GDS_File_Create(const char *FileName)
 COREARRAY_DLL_EXPORT PdGDSFile GDS_File_Open(const char *FileName,
 	C_BOOL ReadOnly, C_BOOL ForkSupport)
 {
-	// to register CoreArray classes and objects
-	RegisterClass();
-
 	int gds_idx = GetEmptyFileIndex();
 	PdGDSFile file = NULL;
 
@@ -174,7 +169,7 @@ COREARRAY_DLL_EXPORT PdGDSFile GDS_File_Open(const char *FileName,
 		else
 			file->LoadFileFork(FileName, ReadOnly);
 
-		PYGDS_GDS_Files[gds_idx] = file;
+		PKG_GDS_Files[gds_idx] = file;
 	}
 	catch (std::exception &E) {
 		string Msg = E.what();
@@ -219,7 +214,7 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 	int gds_idx = GetFileIndex(File, false);
 	if (gds_idx >= 0)
 	{
-		PYGDS_GDS_Files[gds_idx] = NULL;
+		PKG_GDS_Files[gds_idx] = NULL;
 
 		// delete GDS objects in PYGDS_GDSObj_List and PYGDS_GDSObj_Map
 		vector<PdGDSObj>::iterator p = PYGDS_GDSObj_List.begin();
@@ -250,13 +245,14 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 
 
 // ===========================================================================
-// R objects
+// R/Python objects
 
 /// return true, if Obj is a logical object in R
 COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Logical(PdGDSObj Obj)
 {
 	return Obj->Attribute().HasName(ASC16("R.logical"));
 }
+
 
 /// return true, if Obj is a factor variable
 COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Factor(PdGDSObj Obj)
@@ -270,10 +266,102 @@ COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Factor(PdGDSObj Obj)
 }
 
 
+/// return a Python/NumPy object from a GDS object
+COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
+	const C_Int32 *Start, const C_Int32 *Length,
+	const C_BOOL *const Selection[], C_SVType SV)
+{
+	static NPY_TYPES sv2npy[] = {
+		NPY_VOID,       // svCustom
+		NPY_VOID,       // svCustomInt
+		NPY_VOID,       // svCustomUInt
+		NPY_VOID,       // svCustomFloat
+		NPY_VOID,       // svCustomStr
+		NPY_INT8,       // svInt8
+		NPY_UINT8,      // svUInt8
+		NPY_INT16,      // svInt16
+		NPY_UINT16,     // svUInt16
+		NPY_INT32,      // svInt32
+		NPY_UINT32,     // svUInt32
+		NPY_INT64,      // svInt64
+		NPY_UINT64,     // svUInt64
+		NPY_FLOAT,      // svFloat32
+		NPY_DOUBLE,     // svFloat64
+		NPY_VOID,       // svStrUTF8
+		NPY_VOID        // svStrUTF16
+	};
+
+	try
+	{
+		if (SV == svCustom)
+		{
+			SV = Obj->SVType();
+			if (SV == svCustomInt)
+				SV = svInt64;
+			else if (SV == svCustomUInt)
+				SV = svUInt64;
+			else if (SV == svCustomFloat)
+				SV = svFloat64;
+			else if (SV == svCustomStr)
+				SV = svStrUTF8;
+		}
+
+		NPY_TYPES npy_type = NPY_VOID;
+		if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
+			npy_type = sv2npy[SV];
+		if (npy_type == NPY_VOID)
+			throw ErrGDSFmt("Data type is not supported.");
+
+		CdAbstractArray::TArrayDim St, Cnt;
+		if (Start == NULL)
+		{
+			memset(St, 0, sizeof(St));
+			Start = St;
+		}
+		if (Length == NULL)
+		{
+			Obj->GetDim(Cnt);
+			Length = Cnt;
+		}
+
+		CdAbstractArray::TArrayDim ValidCnt;
+		Obj->GetInfoSelection(Start, Length, Selection, NULL, NULL, ValidCnt);
+
+		int ndim = Obj->DimCnt();
+		npy_intp dims[ndim];
+		for (int i=0; i < ndim; i++) dims[i] = ValidCnt[i];
+
+		// create a numpy array object
+		PyObject *rv_ans = PyArray_SimpleNew(ndim, dims, npy_type);
+
+		// read
+		if (COREARRAY_SV_NUMERIC(SV))
+		{
+			void *datptr = PyArray_DATA(rv_ans);
+			if (!Selection)
+				Obj->ReadData(Start, Length, datptr, SV);
+			else
+				Obj->ReadDataEx(Start, Length, Selection, datptr, SV);
+		}
+
+		return rv_ans;
+	}
+	catch (ErrAllocRead &E)
+	{
+		throw ErrGDSFmt(ERR_WRITE_ONLY);
+	}
+	catch (EZLibError &E)
+	{
+		throw ErrGDSFmt(ERR_WRITE_ONLY);
+	}
+
+	return NULL;
+}
+
 
 
 // ===========================================================================
-// functions for error
+// Functions for error
 
 /// the last error message
 COREARRAY_DLL_LOCAL string Py_CoreArray_Error_Msg;
@@ -292,6 +380,22 @@ COREARRAY_DLL_EXPORT void GDS_SetError(const char *Msg)
 	} else {
 		Py_CoreArray_Error_Msg.clear();
 	}
+}
+
+
+
+// ===========================================================================
+// Initialization
+
+/// the last error message
+COREARRAY_DLL_LOCAL PyObject *Py_CoreArray_Init()
+{
+	// register CoreArray classes and objects
+	RegisterClass();
+	// import numpy functions
+	import_array();
+	// output
+	return NULL;
 }
 
 }

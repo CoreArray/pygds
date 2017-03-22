@@ -105,6 +105,7 @@ extern "C" {
 
 	#if (PY_MAJOR_VERSION >= 3)
     #   define PyInt_FromLong        PyLong_FromLong
+    #   define PyInt_AsLong          PyLong_AsLong
 	#   define PYSTR_SET(s)          PyUnicode_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyUnicode_FromStringAndSize(s, len)
 	#else
@@ -148,10 +149,14 @@ extern "C" {
 /*
 	/// return 1 used in UNPROTECT and set levels in 'Val' if Obj is a factor in R; otherwise return 0
 	extern int GDS_R_Set_IfFactor(PdGDSObj Obj, SEXP Val);
+*/
+
 	/// return an R data object from a GDS object, allowing raw-type data
-	extern SEXP GDS_R_Array_Read(PdAbstractArray Obj, const C_Int32 *Start,
+	extern PyObject* GDS_Py_Array_Read(PdAbstractArray Obj, const C_Int32 *Start,
 		const C_Int32 *Length, const C_BOOL *const Selection[],
-		C_UInt32 UseMode);
+		C_SVType SV);
+
+/*
 	/// apply user-defined function margin by margin
 	extern void GDS_R_Apply(int Num, PdAbstractArray ObjList[],
 		int Margins[], const C_BOOL *const * const Selection[],

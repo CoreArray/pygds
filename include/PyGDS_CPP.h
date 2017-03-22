@@ -82,7 +82,7 @@ namespace CoreArray
 		} \
 		if (has_error) \
 		{ \
-			PyObject *type = (has_error==1) ? PyExc_ValueError : PyExc_IOError; \
+			PyObject *type = (has_error==1) ? PyExc_RuntimeError : PyExc_IOError; \
 			PyErr_SetString(type, GDS_GetError()); \
 			return NULL; \
 		}

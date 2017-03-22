@@ -1,5 +1,6 @@
 from distutils.core import setup, Extension
 import os
+import numpy
 
 
 corearray_fnlst = [ os.path.join('src', 'CoreArray', fn) for fn in [
@@ -48,13 +49,13 @@ setup(name='pygds',
 	install_requires = [ 'numpy', 'pandas' ],
 	ext_modules=[ Extension('pygds.ccall',
 		corearray_fnlst + pygds_fnlst,
-		include_dirs=[ 'include', 'src/CoreArray' ],
+		include_dirs=[ 'include', 'src/CoreArray', numpy.get_include() ],
 		define_macros=[
 			('USING_PYTHON', None),
 			('COREARRAY_USE_ZLIB_EXT', None),
+			('COREARRAY_USE_LZMA_EXT', None),
 			('COREARRAY_NO_LZ4', None),
-			('COREARRAY_NO_LZMA', None)
 		],
-		libraries = [ 'z' ]
+		libraries = [ 'z', 'lzma' ]
 	) ]
 )
