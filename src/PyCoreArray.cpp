@@ -287,28 +287,36 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 		NPY_UINT64,     // svUInt64
 		NPY_FLOAT,      // svFloat32
 		NPY_DOUBLE,     // svFloat64
-		NPY_VOID,       // svStrUTF8
+		NPY_OBJECT,     // svStrUTF8
 		NPY_VOID        // svStrUTF16
 	};
 
 	try
 	{
-		if (SV == svCustom)
+		bool bool_flag = GDS_R_Is_Logical(Obj);
+		NPY_TYPES npy_type = NPY_VOID;
+
+		if (SV==svCustom && bool_flag)
 		{
-			SV = Obj->SVType();
-			if (SV == svCustomInt)
-				SV = svInt64;
-			else if (SV == svCustomUInt)
-				SV = svUInt64;
-			else if (SV == svCustomFloat)
-				SV = svFloat64;
-			else if (SV == svCustomStr)
-				SV = svStrUTF8;
+			SV = svInt8;
+			npy_type = NPY_BOOL;
+		} else {
+			if (SV == svCustom)
+			{
+				SV = Obj->SVType();
+				if (SV == svCustomInt)
+					SV = svInt64;
+				else if (SV == svCustomUInt)
+					SV = svUInt64;
+				else if (SV == svCustomFloat)
+					SV = svFloat64;
+				else if (SV == svCustomStr)
+					SV = svStrUTF8;
+			}
+			if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
+				npy_type = sv2npy[SV];
 		}
 
-		NPY_TYPES npy_type = NPY_VOID;
-		if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
-			npy_type = sv2npy[SV];
 		if (npy_type == NPY_VOID)
 			throw ErrGDSFmt("Data type is not supported.");
 
@@ -342,6 +350,20 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 				Obj->ReadData(Start, Length, datptr, SV);
 			else
 				Obj->ReadDataEx(Start, Length, Selection, datptr, SV);
+		} else if (SV == svStrUTF8)
+		{
+			const size_t n = PyArray_SIZE(rv_ans);
+			vector<UTF8String> strbuf(n);
+			if (!Selection)
+				Obj->ReadData(Start, Length, &strbuf[0], SV);
+			else
+				Obj->ReadDataEx(Start, Length, Selection, &strbuf[0], SV);
+			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
+			for (size_t i=0; i < strbuf.size(); i++)
+			{
+				UTF8String &s = strbuf[i];
+				PyArray_SETITEM(rv_ans, p++, PYSTR_SET2(&s[0], s.size()));
+			}
 		}
 
 		return rv_ans;
@@ -388,7 +410,7 @@ COREARRAY_DLL_EXPORT void GDS_SetError(const char *Msg)
 // Initialization
 
 /// the last error message
-COREARRAY_DLL_LOCAL PyObject *Py_CoreArray_Init()
+COREARRAY_DLL_LOCAL PyObject *pygds_init()
 {
 	// register CoreArray classes and objects
 	RegisterClass();

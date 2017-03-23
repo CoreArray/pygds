@@ -852,10 +852,8 @@ COREARRAY_DLL_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 			pDL = dm_cnt;
 		}
 
-		printf("SV: %d\n", (int)sv);
-		PyObject *p = GDS_Py_Array_Read(Obj, pDS, pDL, NULL, sv);
-		printf("OK\n");
-		return p;
+		PyObject *rv = GDS_Py_Array_Read(Obj, pDS, pDL, NULL, sv);
+		return rv;
 
 	COREARRAY_CATCH_NONE
 	return NULL;
@@ -926,7 +924,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
 // Register routines
 // ----------------------------------------------------------------------------
 
-extern COREARRAY_DLL_LOCAL void Py_CoreArray_Init();
+extern COREARRAY_DLL_LOCAL void pygds_init();
 
 static PyMethodDef module_methods[] = {
 	// file operations
@@ -971,7 +969,7 @@ static struct PyModuleDef ModStruct =
 // Module entry point Python3
 PyMODINIT_FUNC PyInit_ccall()
 {
-	Py_CoreArray_Init();
+	pygds_init();
 	return PyModule_Create(&ModStruct);
 }
 

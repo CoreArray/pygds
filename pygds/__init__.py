@@ -59,7 +59,8 @@ class gdsfile:
 			return None
 
 	def show(self):
-		print('file id: %d' % self.fileid)
+		print('File:', self.filename)
+		self.root().show()
 
 
 
