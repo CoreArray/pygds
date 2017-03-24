@@ -1,0 +1,9 @@
+include README.md
+include include/CoreDEF.h
+include include/dType.h
+include include/dTrait.h
+include include/PyGDS.h
+include include/PyGDS_CPP.h
+recursive-include src *.h
+recursive-include src *.cpp
+recursive-include src *.c

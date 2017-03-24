@@ -11,6 +11,24 @@ def cleanup_gds(filename, verbose=True):
 	cc.tidy_up(filename, verbose)
 
 
+def get_include():
+	"""
+	Return the directory that contains the pygds \\*.h header files.
+	Extension modules that need to compile against pygds should use this
+	function to locate the appropriate include directory.
+	Notes
+	-----
+	When using ``distutils``, for example in ``setup.py``.
+	::
+		import pygds as gds
+		...
+		Extension('pkg_name', ...
+				include_dirs=[ gds.get_include() ])
+		...
+	"""
+	import pygds
+	return os.path.join(os.path.dirname(pygds.__file__), 'include')
+
 
 # ===========================================================================
 
@@ -128,7 +146,7 @@ class gdsnode:
 			else:
 				lText = '{'; rText = '}'
 
-			s = ''.join([ prefix, '+ ', node.name(fullname), '   ', lText,
+			s = ''.join([ prefix, '+ ', node.name(fullname), '	 ', lText,
 				' ', d['trait'] ])
 
 			# if logical, factor, list, or data.frame
