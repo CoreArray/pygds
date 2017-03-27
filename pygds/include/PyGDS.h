@@ -104,13 +104,20 @@ extern "C" {
 	#endif
 
 	#if (PY_MAJOR_VERSION >= 3)
+
     #   define PyInt_FromLong        PyLong_FromLong
     #   define PyInt_AsLong          PyLong_AsLong
 	#   define PYSTR_SET(s)          PyUnicode_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyUnicode_FromStringAndSize(s, len)
+
 	#else
+
 	#   define PYSTR_SET(s)          PyString_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyString_FromStringAndSize(s, len)
+	#   define PyCapsule_New(p, name, destructor)    (PyCObject_FromVoidPtr(p, destructor))
+	#   define PyCapsule_CheckExact(p)    (PyCObject_Check(p))
+	#   define PyCapsule_GetPointer(capsule, name)    (PyCObject_AsVoidPtr(capsule))
+
 	#endif
 
 
@@ -154,7 +161,7 @@ extern "C" {
 	/// return an R data object from a GDS object, allowing raw-type data
 	extern PyObject* GDS_Py_Array_Read(PdAbstractArray Obj, const C_Int32 *Start,
 		const C_Int32 *Length, const C_BOOL *const Selection[],
-		C_SVType SV);
+		enum C_SVType SV);
 
 /*
 	/// apply user-defined function margin by margin
@@ -345,10 +352,13 @@ extern "C" {
 
 	// ==================================================================
 
+	/// export pygds C API pointer
+	extern void *PyGDS_API;
+
 	#ifndef COREARRAY_PYGDS_PACKAGE
 
-	/// initialize GDS interface
-	extern void Init_GDS_Routines();
+	/// initialize GDS interface, return -1 if fails
+	extern int Init_GDS_Routines();
 
 	#endif  // COREARRAY_PYGDS_PACKAGE
 

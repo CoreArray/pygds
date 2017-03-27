@@ -2,6 +2,8 @@
 import pygds.ccall as cc
 # import numpy
 import numpy as np
+# import os
+import os
 
 
 
@@ -23,7 +25,7 @@ def get_include():
 		import pygds as gds
 		...
 		Extension('pkg_name', ...
-				include_dirs=[ gds.get_include() ])
+			include_dirs=[ gds.get_include() ])
 		...
 	"""
 	import pygds
@@ -142,11 +144,11 @@ class gdsnode:
 			elif d['type'] == 'Folder':
 				lText = '['; rText = ']'
 			elif d['type'] == 'Unknown':
-				lText = '	 -X-'; rText = ''; expand = False
+				lText = '   -X-'; rText = ''; expand = False
 			else:
 				lText = '{'; rText = '}'
 
-			s = ''.join([ prefix, '+ ', node.name(fullname), '	 ', lText,
+			s = ''.join([ prefix, '+ ', node.name(fullname), '   ', lText,
 				' ', d['trait'] ])
 
 			# if logical, factor, list, or data.frame

@@ -224,7 +224,7 @@ static string fmt_size(double b)
 }
 
 
-/// convert "(CdGDSObj*)  -->  SEXP"
+/// convert "(CdGDSObj*)  -->  PyObject*"
 static void set_obj(CdGDSObj *Obj, int &outidx, Py_ssize_t &outptr)
 {
 	static const char *ERR_OBJLIST = "Internal error in GDS node list.";
@@ -955,24 +955,50 @@ static PyMethodDef module_methods[] = {
 };
 
 
+// Module entry point Python
+
 #if PY_MAJOR_VERSION >= 3
 
 static struct PyModuleDef ModStruct =
 {
 	PyModuleDef_HEAD_INIT,
-	"pygds.ccall", /* name of module */
-	"",          /* module documentation, may be NULL */
-	-1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+	"pygds.ccall",  // name of module
+	"C functions for data manipulation",  // module documentation, may be NULL
+	-1,          // size of per-interpreter state of the module, or -1 if the module keeps state in global variables
 	module_methods
 };
 
-// Module entry point Python3
 PyMODINIT_FUNC PyInit_ccall()
+#else
+PyMODINIT_FUNC initccall()
+#endif
 {
 	pygds_init();
-	return PyModule_Create(&ModStruct);
-}
 
+	// create the module and add the functions
+	PyObject *mod;
+#if PY_MAJOR_VERSION >= 3
+	mod = PyModule_Create(&ModStruct);
+#else
+	mod = Py_InitModule("pygds.ccall", module_methods);
 #endif
+
+	if (mod)
+	{
+		// add some symbolic constants to the module
+		PyObject *dict = PyModule_GetDict(mod);
+		// add api pointer
+		PyObject *c_api = PyCapsule_New((void*)PyGDS_API, NULL, NULL);
+		if (c_api)
+		{
+			PyDict_SetItemString(dict, "_GDS_C_API", c_api);
+			Py_DECREF(c_api);
+		} else {
+			mod = NULL;
+		}
+	}
+
+	return mod;
+}
 
 }
