@@ -62,12 +62,35 @@ COREARRAY_DLL_LOCAL PdGDSFolder GDS_ID2FileRoot(int file_id)
 	return (*(Type_ID2FileRoot)c_api[IDX_PY+1])(file_id);
 }
 
+typedef C_BOOL (*Type_Is_RLogical)(PdGDSObj);
+COREARRAY_DLL_LOCAL C_BOOL GDS_Is_RLogical(PdGDSObj Obj)
+{
+	return (*(Type_Is_RLogical)c_api[IDX_PY+2])(Obj);
+}
+
+typedef C_BOOL (*Type_Is_RFactor)(PdGDSObj);
+COREARRAY_DLL_LOCAL C_BOOL GDS_Is_RFactor(PdGDSObj Obj)
+{
+	return (*(Type_Is_RFactor)c_api[IDX_PY+3])(Obj);
+}
+
+typedef PyObject* (*Type_PyArrayRead)(PdAbstractArray Obj,
+	const C_Int32 *Start, const C_Int32 *Length,
+	const C_BOOL *const Selection[], enum C_SVType SV);
+COREARRAY_DLL_LOCAL PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
+	const C_Int32 *Start, const C_Int32 *Length,
+	const C_BOOL *const Selection[], enum C_SVType SV)
+{
+	return (*(Type_PyArrayRead)c_api[IDX_PY+4])(Obj, Start, Length,
+		Selection, SV);
+}
+
 
 
 // ===========================================================================
 // File structure
 
-#define IDX_FILE    (IDX_PY + 2)
+#define IDX_FILE    (IDX_PY + 5)
 // (TFUNC)GDS_File_Create
 // (TFUNC)GDS_File_Open
 // (TFUNC)GDS_File_Close

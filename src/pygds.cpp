@@ -620,9 +620,9 @@ COREARRAY_DLL_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
 			C_SVType sv = nn->SVType();
 			if (COREARRAY_SV_INTEGER(sv))
 			{
-				if (GDS_R_Is_Factor(Obj))
+				if (GDS_Is_RFactor(Obj))
 					type = "Factor";
-				else if (GDS_R_Is_Logical(Obj))
+				else if (GDS_Is_RLogical(Obj))
 					type = "Logical";
 				else
 					type = "Integer";

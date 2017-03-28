@@ -78,9 +78,9 @@ class gdsfile:
 		else:
 			return None
 
-	def show(self):
+	def show(self, all=False, attribute=False):
 		print('File:', self.filename)
-		self.root().show()
+		self.root().show(all, attribute)
 
 
 

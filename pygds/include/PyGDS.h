@@ -151,10 +151,10 @@ extern "C" {
 	extern void GDS_R_Obj_SEXP2SEXP(SEXP ObjDst, SEXP ObjSrc);
 */
 
-	/// return true, if Obj is a logical object in R
-	extern C_BOOL GDS_R_Is_Logical(PdGDSObj Obj);
-	/// return true, if Obj is a factor variable
-	extern C_BOOL GDS_R_Is_Factor(PdGDSObj Obj);
+	/// return true, if Obj is a logical object in R (equivalent to BOOL)
+	extern C_BOOL GDS_Is_RLogical(PdGDSObj Obj);
+	/// return true, if Obj is a factor variable in R
+	extern C_BOOL GDS_Is_RFactor(PdGDSObj Obj);
 
 /*
 	/// return 1 used in UNPROTECT and set levels in 'Val' if Obj is a factor in R; otherwise return 0

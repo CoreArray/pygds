@@ -129,7 +129,7 @@ static const char *ERR_WRITE_ONLY =
 
 
 // ===========================================================================
-// R objects
+// Python objects
 
 COREARRAY_DLL_EXPORT PdGDSFile GDS_ID2File(int file_id)
 {
@@ -150,6 +150,137 @@ COREARRAY_DLL_EXPORT PdGDSFolder GDS_ID2FileRoot(int file_id)
 	return &(file->Root());
 }
 
+
+COREARRAY_DLL_EXPORT C_BOOL GDS_Is_RLogical(PdGDSObj Obj)
+{
+	return Obj->Attribute().HasName(ASC16("R.logical"));
+}
+
+
+COREARRAY_DLL_EXPORT C_BOOL GDS_Is_RFactor(PdGDSObj Obj)
+{
+	if (Obj->Attribute().HasName(ASC16("R.class")) &&
+		Obj->Attribute().HasName(ASC16("R.levels")))
+	{
+		return (Obj->Attribute()[ASC16("R.class")].GetStr8() == "factor");
+	} else
+		return false;
+}
+
+
+// return a Python/NumPy object from a GDS object
+COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
+	const C_Int32 *Start, const C_Int32 *Length,
+	const C_BOOL *const Selection[], C_SVType SV)
+{
+	static NPY_TYPES sv2npy[] = {
+		NPY_VOID,       // svCustom
+		NPY_VOID,       // svCustomInt
+		NPY_VOID,       // svCustomUInt
+		NPY_VOID,       // svCustomFloat
+		NPY_VOID,       // svCustomStr
+		NPY_INT8,       // svInt8
+		NPY_UINT8,      // svUInt8
+		NPY_INT16,      // svInt16
+		NPY_UINT16,     // svUInt16
+		NPY_INT32,      // svInt32
+		NPY_UINT32,     // svUInt32
+		NPY_INT64,      // svInt64
+		NPY_UINT64,     // svUInt64
+		NPY_FLOAT,      // svFloat32
+		NPY_DOUBLE,     // svFloat64
+		NPY_OBJECT,     // svStrUTF8
+		NPY_VOID        // svStrUTF16
+	};
+
+	try
+	{
+		bool bool_flag = GDS_Is_RLogical(Obj);
+		NPY_TYPES npy_type = NPY_VOID;
+
+		if (SV==svCustom && bool_flag)
+		{
+			SV = svInt8;
+			npy_type = NPY_BOOL;
+		} else {
+			if (SV == svCustom)
+			{
+				SV = Obj->SVType();
+				if (SV == svCustomInt)
+					SV = svInt64;
+				else if (SV == svCustomUInt)
+					SV = svUInt64;
+				else if (SV == svCustomFloat)
+					SV = svFloat64;
+				else if (SV == svCustomStr)
+					SV = svStrUTF8;
+			}
+			if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
+				npy_type = sv2npy[SV];
+		}
+
+		if (npy_type == NPY_VOID)
+			throw ErrGDSFmt("Data type is not supported.");
+
+		CdAbstractArray::TArrayDim St, Cnt;
+		if (Start == NULL)
+		{
+			memset(St, 0, sizeof(St));
+			Start = St;
+		}
+		if (Length == NULL)
+		{
+			Obj->GetDim(Cnt);
+			Length = Cnt;
+		}
+
+		CdAbstractArray::TArrayDim ValidCnt;
+		Obj->GetInfoSelection(Start, Length, Selection, NULL, NULL, ValidCnt);
+
+		int ndim = Obj->DimCnt();
+		npy_intp dims[ndim];
+		for (int i=0; i < ndim; i++) dims[i] = ValidCnt[i];
+
+		// create a numpy array object
+		PyObject *rv_ans = PyArray_SimpleNew(ndim, dims, npy_type);
+
+		// read
+		if (COREARRAY_SV_NUMERIC(SV))
+		{
+			void *datptr = PyArray_DATA(rv_ans);
+			if (!Selection)
+				Obj->ReadData(Start, Length, datptr, SV);
+			else
+				Obj->ReadDataEx(Start, Length, Selection, datptr, SV);
+		} else if (SV == svStrUTF8)
+		{
+			const size_t n = PyArray_SIZE(rv_ans);
+			vector<UTF8String> strbuf(n);
+			if (!Selection)
+				Obj->ReadData(Start, Length, &strbuf[0], SV);
+			else
+				Obj->ReadDataEx(Start, Length, Selection, &strbuf[0], SV);
+			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
+			for (size_t i=0; i < strbuf.size(); i++)
+			{
+				UTF8String &s = strbuf[i];
+				PyArray_SETITEM(rv_ans, p++, PYSTR_SET2(&s[0], s.size()));
+			}
+		}
+
+		return rv_ans;
+	}
+	catch (ErrAllocRead &E)
+	{
+		throw ErrGDSFmt(ERR_WRITE_ONLY);
+	}
+	catch (EZLibError &E)
+	{
+		throw ErrGDSFmt(ERR_WRITE_ONLY);
+	}
+
+	return NULL;  // never execute
+}
 
 
 
@@ -593,140 +724,6 @@ COREARRAY_DLL_EXPORT int GDS_Mach_Finite(double val)
 // ===========================================================================
 // R/Python objects
 
-/// return true, if Obj is a logical object in R
-COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Logical(PdGDSObj Obj)
-{
-	return Obj->Attribute().HasName(ASC16("R.logical"));
-}
-
-
-/// return true, if Obj is a factor variable
-COREARRAY_DLL_EXPORT C_BOOL GDS_R_Is_Factor(PdGDSObj Obj)
-{
-	if (Obj->Attribute().HasName(ASC16("R.class")) &&
-		Obj->Attribute().HasName(ASC16("R.levels")))
-	{
-		return (Obj->Attribute()[ASC16("R.class")].GetStr8() == "factor");
-	} else
-		return false;
-}
-
-
-/// return a Python/NumPy object from a GDS object
-COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
-	const C_Int32 *Start, const C_Int32 *Length,
-	const C_BOOL *const Selection[], C_SVType SV)
-{
-	static NPY_TYPES sv2npy[] = {
-		NPY_VOID,       // svCustom
-		NPY_VOID,       // svCustomInt
-		NPY_VOID,       // svCustomUInt
-		NPY_VOID,       // svCustomFloat
-		NPY_VOID,       // svCustomStr
-		NPY_INT8,       // svInt8
-		NPY_UINT8,      // svUInt8
-		NPY_INT16,      // svInt16
-		NPY_UINT16,     // svUInt16
-		NPY_INT32,      // svInt32
-		NPY_UINT32,     // svUInt32
-		NPY_INT64,      // svInt64
-		NPY_UINT64,     // svUInt64
-		NPY_FLOAT,      // svFloat32
-		NPY_DOUBLE,     // svFloat64
-		NPY_OBJECT,     // svStrUTF8
-		NPY_VOID        // svStrUTF16
-	};
-
-	try
-	{
-		bool bool_flag = GDS_R_Is_Logical(Obj);
-		NPY_TYPES npy_type = NPY_VOID;
-
-		if (SV==svCustom && bool_flag)
-		{
-			SV = svInt8;
-			npy_type = NPY_BOOL;
-		} else {
-			if (SV == svCustom)
-			{
-				SV = Obj->SVType();
-				if (SV == svCustomInt)
-					SV = svInt64;
-				else if (SV == svCustomUInt)
-					SV = svUInt64;
-				else if (SV == svCustomFloat)
-					SV = svFloat64;
-				else if (SV == svCustomStr)
-					SV = svStrUTF8;
-			}
-			if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
-				npy_type = sv2npy[SV];
-		}
-
-		if (npy_type == NPY_VOID)
-			throw ErrGDSFmt("Data type is not supported.");
-
-		CdAbstractArray::TArrayDim St, Cnt;
-		if (Start == NULL)
-		{
-			memset(St, 0, sizeof(St));
-			Start = St;
-		}
-		if (Length == NULL)
-		{
-			Obj->GetDim(Cnt);
-			Length = Cnt;
-		}
-
-		CdAbstractArray::TArrayDim ValidCnt;
-		Obj->GetInfoSelection(Start, Length, Selection, NULL, NULL, ValidCnt);
-
-		int ndim = Obj->DimCnt();
-		npy_intp dims[ndim];
-		for (int i=0; i < ndim; i++) dims[i] = ValidCnt[i];
-
-		// create a numpy array object
-		PyObject *rv_ans = PyArray_SimpleNew(ndim, dims, npy_type);
-
-		// read
-		if (COREARRAY_SV_NUMERIC(SV))
-		{
-			void *datptr = PyArray_DATA(rv_ans);
-			if (!Selection)
-				Obj->ReadData(Start, Length, datptr, SV);
-			else
-				Obj->ReadDataEx(Start, Length, Selection, datptr, SV);
-		} else if (SV == svStrUTF8)
-		{
-			const size_t n = PyArray_SIZE(rv_ans);
-			vector<UTF8String> strbuf(n);
-			if (!Selection)
-				Obj->ReadData(Start, Length, &strbuf[0], SV);
-			else
-				Obj->ReadDataEx(Start, Length, Selection, &strbuf[0], SV);
-			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
-			for (size_t i=0; i < strbuf.size(); i++)
-			{
-				UTF8String &s = strbuf[i];
-				PyArray_SETITEM(rv_ans, p++, PYSTR_SET2(&s[0], s.size()));
-			}
-		}
-
-		return rv_ans;
-	}
-	catch (ErrAllocRead &E)
-	{
-		throw ErrGDSFmt(ERR_WRITE_ONLY);
-	}
-	catch (EZLibError &E)
-	{
-		throw ErrGDSFmt(ERR_WRITE_ONLY);
-	}
-
-	return NULL;
-}
-
-
 
 
 // ===========================================================================
@@ -740,6 +737,10 @@ static TFUNC c_api[] = {
 	// Python objects
 	(TFUNC)GDS_ID2File,
 	(TFUNC)GDS_ID2FileRoot,
+	(TFUNC)GDS_Is_RLogical,
+	(TFUNC)GDS_Is_RFactor,
+	(TFUNC)GDS_Py_Array_Read,
+
 	// functions for file structure
 	(TFUNC)GDS_File_Create,
 	(TFUNC)GDS_File_Open,
@@ -798,8 +799,8 @@ static TFUNC c_api[] = {
 	(TFUNC)GDS_R_SEXP2Obj);
 	(TFUNC)GDS_R_Obj2SEXP);
 	(TFUNC)GDS_R_Obj_SEXP2SEXP);
-	(TFUNC)GDS_R_Is_Logical);
-	(TFUNC)GDS_R_Is_Factor);
+	(TFUNC)GDS_Is_RLogical);
+	(TFUNC)GDS_Is_RFactor);
 	(TFUNC)GDS_R_Set_IfFactor);
 	(TFUNC)GDS_R_Array_Read);
 	(TFUNC)GDS_R_Apply);
