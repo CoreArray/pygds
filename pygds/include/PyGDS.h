@@ -331,6 +331,8 @@ extern "C" {
 	extern int GDS_Mach_GetNumOfCores();
 	/// return the size in byte of level-n cache memory
 	extern C_UInt64 GDS_Mach_GetCPULevelCache(int level);
+	/// return 1 if the value is finite, otherwise 0
+	extern int GDS_Mach_Finite(double val);
 
 
 

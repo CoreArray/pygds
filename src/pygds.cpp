@@ -910,7 +910,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
 // Register routines
 // ----------------------------------------------------------------------------
 
-extern COREARRAY_DLL_LOCAL void pygds_init();
+extern COREARRAY_DLL_LOCAL bool pygds_init();
 
 static PyMethodDef module_methods[] = {
 	// file operations
@@ -959,7 +959,7 @@ PyMODINIT_FUNC PyInit_ccall()
 PyMODINIT_FUNC initccall()
 #endif
 {
-	pygds_init();
+	if (!pygds_init()) return NULL;
 
 	// create the module and add the functions
 	PyObject *mod;

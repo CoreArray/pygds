@@ -575,6 +575,11 @@ COREARRAY_DLL_EXPORT C_UInt64 GDS_Mach_GetCPULevelCache(int level)
 	return Mach::GetCPU_LevelCache(level);
 }
 
+/// return 1 if the value is finite, otherwise 0
+COREARRAY_DLL_EXPORT int GDS_Mach_Finite(double val)
+{
+	return IsFinite(val) ? 1 : 0;
+}
 
 
 
@@ -781,7 +786,8 @@ static TFUNC c_api[] = {
 	(TFUNC)GDS_SetError,
 	// functions for machine
 	(TFUNC)GDS_Mach_GetNumOfCores,
-	(TFUNC)GDS_Mach_GetCPULevelCache
+	(TFUNC)GDS_Mach_GetCPULevelCache,
+	(TFUNC)GDS_Mach_Finite
 };
 
 
@@ -829,16 +835,27 @@ static TFUNC c_api[] = {
 */
 
 
-/// the last error message
-COREARRAY_DLL_LOCAL PyObject *pygds_init()
+
+// import numpy functions
+#if (PY_MAJOR_VERSION >= 3)
+static PyObject* _init_() { import_array(); return Py_None; }
+#else
+static void _init_() { import_array(); return NULL; }
+#endif
+
+COREARRAY_DLL_LOCAL bool pygds_init()
 {
 	PyGDS_API = (void*)c_api;
 	// register CoreArray classes and objects
 	RegisterClass();
-	// import numpy functions
-	import_array();
+	// import numpy
+#if (PY_MAJOR_VERSION >= 3)
+	if (_init_() == NUMPY_IMPORT_ARRAY_RETVAL) return false;
+#else
+	_init_();
+#endif
 	// output
-	return NULL;
+	return true;
 }
 
 }

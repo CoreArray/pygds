@@ -413,6 +413,13 @@ COREARRAY_DLL_EXPORT C_UInt64 GDS_Mach_GetCPULevelCache(int level)
 	return (*(Type_Mach_GetCPULevelCache)c_api[IDX_MACH+1])(level);
 }
 
+typedef size_t (*Type_Mach_Finite)(double);
+COREARRAY_DLL_EXPORT int GDS_Mach_Finite(double val)
+{
+	return (*(Type_Mach_Finite)c_api[IDX_MACH+2])(val);
+}
+
+
 
 
 
