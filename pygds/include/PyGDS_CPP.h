@@ -65,6 +65,9 @@ namespace CoreArray
 		} \
 
 
+	// [[ ********
+	#ifdef COREARRAY_PYGDS_PACKAGE
+
 	/// catch block for CoreArray library
 	#define COREARRAY_CATCH    \
 		} \
@@ -86,6 +89,29 @@ namespace CoreArray
 			PyErr_SetString(type, GDS_GetError()); \
 			return NULL; \
 		}
+
+	#else
+
+	/// catch block for CoreArray library
+	#define COREARRAY_CATCH    \
+		} \
+		catch (std::exception &E) { \
+			GDS_SetError(E.what()); has_error = 1; \
+		} \
+		catch (const char *E) { \
+			GDS_SetError(E); has_error = 1; \
+		} \
+		catch (...) { \
+			GDS_SetError("unknown error!"); has_error = 1; \
+		} \
+		if (has_error) \
+		{ \
+			PyErr_SetString(PyExc_RuntimeError, GDS_GetError()); \
+			return NULL; \
+		}
+	
+	#endif
+
 
 	/// catch block for CoreArray library
 	#define COREARRAY_CATCH_NONE    \
@@ -128,62 +154,6 @@ namespace CoreArray
 			vsnprintf(buf, sizeof(buf), fmt, arglist);
 			fMessage = buf;
 		}
-	};
-
-
-	/// automatic mutex object
-	struct TdAutoMutex
-	{
-		PdThreadMutex mutex;
-
-		TdAutoMutex(PdThreadMutex m)
-			{ mutex = m; if (m) GDS_Parallel_LockMutex(m); }
-		~TdAutoMutex()
-			{ if (mutex) GDS_Parallel_UnlockMutex(mutex); }
-
-		COREARRAY_INLINE void Reset(PdThreadMutex m)
-		{
-			if (m != mutex)
-			{
-				if (mutex) GDS_Parallel_UnlockMutex(mutex);
-				mutex = m;
-				if (m) GDS_Parallel_LockMutex(m);
-			}
-		}
-	};
-
-
-	/// the class of read array
-	class CArrayRead
-	{
-	public:
-		CArrayRead(PdAbstractArray Obj, int Margin, C_SVType SVType,
-			const C_BOOL *const Selection[], bool buf_if_need=true)
-		{
-			_Obj = GDS_ArrayRead_Init(Obj, Margin, SVType, Selection,
-				buf_if_need);
-			if (!_Obj)
-				throw ErrCoreArray("Error 'initialize CArrayRead'.");
-		}
-		~CArrayRead()
-		{
-			GDS_ArrayRead_Free(_Obj);
-		}
-
-		/// read data
-		void Read(void *Buffer)
-		{
-			GDS_ArrayRead_Read(_Obj, Buffer);
-		}
-
-		/// return true, if it is of the end
-		bool Eof()
-		{
-			return GDS_ArrayRead_Eof(_Obj);
-		}
-
-	protected:
-		PdArrayRead _Obj;
 	};
 
 	#else  // COREARRAY_PYGDS_PACKAGE

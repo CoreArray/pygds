@@ -132,16 +132,19 @@ extern "C" {
 	#define GDS_MAX_NUM_DIMENSION      256
 
 
-/*
-	// ==================================================================
-	// R objects
 
-	/// convert "SEXP  --> (CdGDSFile*)"
-	extern PdGDSFile GDS_R_SEXP2File(SEXP File);
-	/// convert "SEXP  --> (CdGDSFolder*)" (requiring >= v1.5.4)
-	extern PdGDSFolder GDS_R_SEXP2FileRoot(SEXP File);
+	// ==================================================================
+	// Python objects
+
+	/// convert "file_id  --> (CdGDSFile*)"
+	extern PdGDSFile GDS_ID2File(int file_id);
+	/// convert "file_id  --> (CdGDSFolder*)"
+	extern PdGDSFolder GDS_ID2FileRoot(int file_id);
+
+/*
 	/// convert "SEXP  --> (CdGDSObj*)"
 	extern PdGDSObj GDS_R_SEXP2Obj(SEXP Obj, C_BOOL ReadOnly);
+
 	/// convert "(CdGDSObj*)  -->  SEXP", true for read-only
 	extern SEXP GDS_R_Obj2SEXP(PdGDSObj Obj);
 	/// convert "SEXP (ObjSrc)  -->  SEXP (ObjDst)", (requiring >= v1.5.8)

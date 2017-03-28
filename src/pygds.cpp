@@ -186,20 +186,6 @@ static const char *ERR_NO_DATA =
 // Internal functions
 // ----------------------------------------------------------------------------
 
-/// convert file_id to (CdGDSFile*)
-static PdGDSFile ID2File(int file_id)
-{
-	if ((file_id < 0) || (file_id >= PYGDS_MAX_NUM_GDS_FILES))
-		throw ErrGDSFmt("The GDS ID (%d) is invalid.", file_id);
-
-	PdGDSFile file = PKG_GDS_Files[file_id];
-	if (file == NULL)
-		throw ErrGDSFmt("The GDS file is closed or uninitialized.");
-
-	return file;
-}
-
-
 /// file size to a string
 static string fmt_size(double b)
 {
@@ -360,7 +346,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 
 	COREARRAY_TRY
 		if (file_id >= 0)
-			GDS_File_Close(ID2File(file_id));
+			GDS_File_Close(GDS_ID2File(file_id));
 	COREARRAY_CATCH_NONE
 }
 
@@ -373,7 +359,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 		return NULL;
 
 	COREARRAY_TRY
-		ID2File(file_id)->SyncFile();
+		GDS_ID2File(file_id)->SyncFile();
 	COREARRAY_CATCH_NONE
 }
 
@@ -387,7 +373,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsFileSize(PyObject *self, PyObject *args)
 
 	double sz;
 	COREARRAY_TRY
-		sz = ID2File(file_id)->GetFileSize();
+		sz = GDS_ID2File(file_id)->GetFileSize();
 	COREARRAY_CATCH
 	return Py_BuildValue("d", sz);
 }
@@ -437,7 +423,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsRoot(PyObject *self, PyObject *args)
 	int idx;
 	Py_ssize_t ptr;
 	COREARRAY_TRY
-		set_obj(&ID2File(file_id)->Root(), idx, ptr);
+		set_obj(&GDS_ID2File(file_id)->Root(), idx, ptr);
 	COREARRAY_CATCH
 
 	return Py_BuildValue("in", idx, ptr);
@@ -456,7 +442,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsIndex(PyObject *self, PyObject *args)
 	int idx;
 	Py_ssize_t ptr;
 	COREARRAY_TRY
-		CdGDSObj *Obj = ID2File(file_id)->Root().PathEx(UTF16Text(path));
+		CdGDSObj *Obj = GDS_ID2File(file_id)->Root().PathEx(UTF16Text(path));
 		if (!Obj && !silent)
 			throw ErrGDSObj("No such GDS node \"%s\"!", path);
 		if (Obj)
@@ -963,8 +949,8 @@ static struct PyModuleDef ModStruct =
 {
 	PyModuleDef_HEAD_INIT,
 	"pygds.ccall",  // name of module
-	"C functions for data manipulation",  // module documentation, may be NULL
-	-1,          // size of per-interpreter state of the module, or -1 if the module keeps state in global variables
+	"C functions for data manipulation",  // module documentation
+	-1,  // size of per-interpreter state of the module, or -1 if the module keeps state in global variables
 	module_methods
 };
 

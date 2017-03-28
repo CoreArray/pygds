@@ -1,9 +1,9 @@
-# import c library
-import pygds.ccall as cc
 # import numpy
 import numpy as np
 # import os
 import os
+# import c library
+import pygds.ccall as cc
 
 
 

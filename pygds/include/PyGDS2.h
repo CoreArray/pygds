@@ -44,9 +44,30 @@ static TFUNC *c_api = NULL;
 
 
 // ===========================================================================
+// Python function
+
+#define IDX_PY    0
+// (TFUNC)GDS_ID2File
+// (TFUNC)GDS_ID2FileRoot
+
+typedef PdGDSFile (*Type_ID2File)(int);
+COREARRAY_DLL_LOCAL PdGDSFile GDS_ID2File(int file_id)
+{
+	return (*(Type_ID2File)c_api[IDX_PY+0])(file_id);
+}
+
+typedef PdGDSFolder (*Type_ID2FileRoot)(int);
+COREARRAY_DLL_LOCAL PdGDSFolder GDS_ID2FileRoot(int file_id)
+{
+	return (*(Type_ID2FileRoot)c_api[IDX_PY+1])(file_id);
+}
+
+
+
+// ===========================================================================
 // File structure
 
-#define IDX_FILE    0
+#define IDX_FILE    (IDX_PY + 2)
 // (TFUNC)GDS_File_Create
 // (TFUNC)GDS_File_Open
 // (TFUNC)GDS_File_Close
@@ -691,7 +712,7 @@ int Init_GDS_Routines()
 		Py_DECREF(api);
 		return -1;
 	}
-	c_api = (TFUNC **)PyCapsule_GetPointer(api, NULL);
+	c_api = (TFUNC*)PyCapsule_GetPointer(api, NULL);
 
 	Py_DECREF(api);
 	if (c_api == NULL)

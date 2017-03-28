@@ -127,6 +127,34 @@ extern "C"
 static const char *ERR_WRITE_ONLY =
 	"Writable only and please call 'readmode()' before reading.";
 
+
+// ===========================================================================
+// R objects
+
+COREARRAY_DLL_EXPORT PdGDSFile GDS_ID2File(int file_id)
+{
+	if ((file_id < 0) || (file_id >= PYGDS_MAX_NUM_GDS_FILES))
+		throw ErrGDSFmt("The GDS file ID (%d) is invalid.", file_id);
+
+	PdGDSFile file = PKG_GDS_Files[file_id];
+	if (file == NULL)
+		throw ErrGDSFmt("The GDS file is closed or uninitialized.");
+
+	return file;
+}
+
+
+COREARRAY_DLL_EXPORT PdGDSFolder GDS_ID2FileRoot(int file_id)
+{
+	PdGDSFile file = GDS_ID2File(file_id);
+	return &(file->Root());
+}
+
+
+
+
+
+
 // ===========================================================================
 // Functions for file structure
 
@@ -704,6 +732,9 @@ typedef void (*TFUNC)();
 void *PyGDS_API = NULL;
 
 static TFUNC c_api[] = {
+	// Python objects
+	(TFUNC)GDS_ID2File,
+	(TFUNC)GDS_ID2FileRoot,
 	// functions for file structure
 	(TFUNC)GDS_File_Create,
 	(TFUNC)GDS_File_Open,
