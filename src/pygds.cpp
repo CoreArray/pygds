@@ -32,6 +32,9 @@
 #include <map>
 
 
+#define PY_EXPORT    static
+
+
 namespace pygds
 {
 	extern PdGDSFile PKG_GDS_Files[];
@@ -270,7 +273,7 @@ static CdGDSObj* get_obj(int idx, Py_ssize_t ptr_int)
 // ----------------------------------------------------------------------------
 
 /// Create a GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int allow_dup;
@@ -304,7 +307,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 
 
 /// Open an existing GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int readonly, allow_dup;
@@ -338,7 +341,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 
 
 /// Close the GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -352,7 +355,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsCloseGDS(PyObject *self, PyObject *args)
 
 
 /// Synchronize the GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -365,7 +368,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsSyncGDS(PyObject *self, PyObject *args)
 
 
 /// Get the file size and check the file handler
-COREARRAY_DLL_EXPORT PyObject* gdsFileSize(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsFileSize(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -380,7 +383,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsFileSize(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsTidyUp(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsTidyUp(PyObject *self, PyObject *args)
 {
 	const char *fn;
 	int verbose;
@@ -414,7 +417,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsTidyUp(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsRoot(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsRoot(PyObject *self, PyObject *args)
 {
 	int file_id;
 	if (!PyArg_ParseTuple(args, "i", &file_id))
@@ -431,7 +434,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsRoot(PyObject *self, PyObject *args)
 
 
 /// Clean up fragments of a GDS file
-COREARRAY_DLL_EXPORT PyObject* gdsIndex(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsIndex(PyObject *self, PyObject *args)
 {
 	int file_id;
 	const char *path;
@@ -463,7 +466,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsIndex(PyObject *self, PyObject *args)
 // ----------------------------------------------------------------------------
 
 /// Enumerate the names of its child nodes
-COREARRAY_DLL_EXPORT PyObject* gdsnListName(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnListName(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -514,7 +517,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnListName(PyObject *self, PyObject *args)
 
 
 /// Get the GDS node with a given path
-COREARRAY_DLL_EXPORT PyObject* gdsnIndex(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnIndex(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -549,7 +552,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnIndex(PyObject *self, PyObject *args)
 
 
 /// Get the name of a GDS node
-COREARRAY_DLL_EXPORT PyObject* gdsnName(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnName(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -570,7 +573,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnName(PyObject *self, PyObject *args)
 
 
 /// Get the name of a GDS node
-COREARRAY_DLL_EXPORT PyObject* gdsnRename(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnRename(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -586,7 +589,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnRename(PyObject *self, PyObject *args)
 
 
 /// Get the description of a GDS node
-COREARRAY_DLL_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -725,7 +728,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
 // ----------------------------------------------------------------------------
 
 /// Read data from a GDS node
-COREARRAY_DLL_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
@@ -851,7 +854,7 @@ COREARRAY_DLL_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 // Attribute Operations
 // ----------------------------------------------------------------------------
 
-COREARRAY_DLL_EXPORT PyObject* any2obj(CdAny &Obj)
+PY_EXPORT PyObject* any2obj(CdAny &Obj)
 {
 	if (Obj.IsInt())
 	{
@@ -879,7 +882,7 @@ COREARRAY_DLL_EXPORT PyObject* any2obj(CdAny &Obj)
 }
 
 /// Get the attribute(s) of a GDS node
-COREARRAY_DLL_EXPORT PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
+PY_EXPORT PyObject* gdsnGetAttr(PyObject *self, PyObject *args)
 {
 	int nidx;
 	Py_ssize_t ptr_int;
