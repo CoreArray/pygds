@@ -1,10 +1,4 @@
 // ===========================================================
-//     _/_/_/   _/_/_/  _/_/_/_/    _/_/_/_/  _/_/_/   _/_/_/
-//      _/    _/       _/             _/    _/    _/   _/   _/
-//     _/    _/       _/_/_/_/       _/    _/    _/   _/_/_/
-//    _/    _/       _/             _/    _/    _/   _/
-// _/_/_/   _/_/_/  _/_/_/_/_/     _/     _/_/_/   _/_/
-// ===========================================================
 //
 // PyCoreArray.cpp: Export the C routines of CoreArray library
 //
@@ -37,12 +31,12 @@ namespace pygds
 
 
 	/// a list of GDS files in the gdsfmt package
-	COREARRAY_DLL_LOCAL PdGDSFile PKG_GDS_Files[PYGDS_MAX_NUM_GDS_FILES];
+	COREARRAY_DLL_LOCAL PdGDSFile PKG_GDS_Files[PKG_MAX_NUM_GDS_FILES];
 
 	/// get the index in 'PKG_GDS_Files' for NULL
 	COREARRAY_DLL_LOCAL int GetEmptyFileIndex(bool throw_error=true)
 	{
-		for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
+		for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 		{
 			if (PKG_GDS_Files[i] == NULL)
 				return i;
@@ -51,7 +45,7 @@ namespace pygds
 		{
 			throw ErrGDSFmt(
 				"You have opened %d GDS files, and no more is allowed!",
-				PYGDS_MAX_NUM_GDS_FILES);
+				PKG_MAX_NUM_GDS_FILES);
 		}
 		return -1;
 	}
@@ -59,7 +53,7 @@ namespace pygds
 	/// get the index in 'PKG_GDS_Files' for file
 	COREARRAY_DLL_LOCAL int GetFileIndex(PdGDSFile file, bool throw_error=true)
 	{
-		for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
+		for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 		{
 			if (PKG_GDS_Files[i] == file)
 				return i;
@@ -97,7 +91,7 @@ namespace pygds
 			PYGDS_GDSObj_List.clear();
 			PYGDS_GDSObj_Map.clear();
 
-			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
+			for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 			{
 				PdGDSFile file = PKG_GDS_Files[i];
 				if (file != NULL)
@@ -133,7 +127,7 @@ static const char *ERR_WRITE_ONLY =
 
 COREARRAY_DLL_EXPORT PdGDSFile GDS_ID2File(int file_id)
 {
-	if ((file_id < 0) || (file_id >= PYGDS_MAX_NUM_GDS_FILES))
+	if ((file_id < 0) || (file_id >= PKG_MAX_NUM_GDS_FILES))
 		throw ErrGDSFmt("The GDS file ID (%d) is invalid.", file_id);
 
 	PdGDSFile file = PKG_GDS_Files[file_id];

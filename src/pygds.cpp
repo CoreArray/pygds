@@ -1,10 +1,4 @@
 // ===========================================================
-//     _/_/_/   _/_/_/  _/_/_/_/    _/_/_/_/  _/_/_/   _/_/_/
-//      _/    _/       _/             _/    _/    _/   _/   _/
-//     _/    _/       _/_/_/_/       _/    _/    _/   _/_/_/
-//    _/    _/       _/             _/    _/    _/   _/
-// _/_/_/   _/_/_/  _/_/_/_/_/     _/     _/_/_/   _/_/
-// ===========================================================
 //
 // pygds.cpp: Python Interface to CoreArray Genomic Data Structure (GDS) Files
 //
@@ -285,7 +279,7 @@ PY_EXPORT PyObject* gdsCreateGDS(PyObject *self, PyObject *args)
 		if (!allow_dup)
 		{
 			UTF8String FName = UTF8Text(fn);
-			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
+			for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 			{
 				if (PKG_GDS_Files[i])
 				{
@@ -319,7 +313,7 @@ PY_EXPORT PyObject* gdsOpenGDS(PyObject *self, PyObject *args)
 		if (!allow_dup)
 		{
 			UTF8String FName = UTF8Text(fn);
-			for (int i=0; i < PYGDS_MAX_NUM_GDS_FILES; i++)
+			for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 			{
 				if (PKG_GDS_Files[i])
 				{

@@ -126,10 +126,10 @@ extern "C" {
 	// ==================================================================
 
 	/// the maximum number of GDS files
-	#define PYGDS_MAX_NUM_GDS_FILES    1024
+	#define PKG_MAX_NUM_GDS_FILES    1024
 
-	/// the maximun number of dimensions in GDS array
-	#define GDS_MAX_NUM_DIMENSION      256
+	/// the maximun number of dimensions in GDS array (it has been specified in the library)
+	#define GDS_MAX_NUM_DIMENSION    256
 
 
 
