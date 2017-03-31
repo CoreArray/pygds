@@ -4,6 +4,8 @@ pygds: Python Interface to CoreArray Genomic Data Structure (GDS) Files
 ![GPLv3](http://www.gnu.org/graphics/gplv3-88x31.png)
 [GNU General Public License, GPLv3](http://www.gnu.org/copyleft/gpl.html)
 
+[![Build Status](https://travis-ci.org/CoreArray/pygds.png)](https://travis-ci.org/CoreArray/pygds)
+
 
 ## Features
 
