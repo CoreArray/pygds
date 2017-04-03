@@ -32,8 +32,8 @@
 namespace pygds
 {
 	extern PdGDSFile PKG_GDS_Files[];
-	extern vector<PdGDSObj> PYGDS_GDSObj_List;
-	extern map<PdGDSObj, int> PYGDS_GDSObj_Map;
+	extern vector<PdGDSObj> PKG_GDSObj_List;
+	extern map<PdGDSObj, int> PKG_GDSObj_Map;
 	extern int GetFileIndex(PdGDSFile file, bool throw_error=true);
 
 
@@ -215,27 +215,27 @@ static void set_obj(CdGDSObj *Obj, int &outidx, Py_ssize_t &outptr)
 	if (!Obj)
 		throw ErrGDSFmt("Invalid GDS object [NULL].");
 
-	map<PdGDSObj, int>::iterator it = PYGDS_GDSObj_Map.find(Obj);
-	if (it != PYGDS_GDSObj_Map.end())
+	map<PdGDSObj, int>::iterator it = PKG_GDSObj_Map.find(Obj);
+	if (it != PKG_GDSObj_Map.end())
 	{
 		outidx = it->second;
-		if ((outidx < 0) || (outidx >= (int)PYGDS_GDSObj_List.size()))
+		if ((outidx < 0) || (outidx >= (int)PKG_GDSObj_List.size()))
 			throw ErrGDSFmt(ERR_OBJLIST);
-		if (PYGDS_GDSObj_List[outidx] != Obj)
+		if (PKG_GDSObj_List[outidx] != Obj)
 			throw ErrGDSFmt(ERR_OBJLIST);
 	} else {
 		vector<PdGDSObj>::iterator it =
-			find(PYGDS_GDSObj_List.begin(), PYGDS_GDSObj_List.end(),
+			find(PKG_GDSObj_List.begin(), PKG_GDSObj_List.end(),
 			(PdGDSObj)NULL);
-		if (it != PYGDS_GDSObj_List.end())
+		if (it != PKG_GDSObj_List.end())
 		{
-			outidx = it - PYGDS_GDSObj_List.begin();
+			outidx = it - PKG_GDSObj_List.begin();
 			*it = Obj;
 		} else {
-			outidx = PYGDS_GDSObj_List.size();
-			PYGDS_GDSObj_List.push_back(Obj);
+			outidx = PKG_GDSObj_List.size();
+			PKG_GDSObj_List.push_back(Obj);
 		}
-		PYGDS_GDSObj_Map[Obj] = outidx;
+		PKG_GDSObj_Map[Obj] = outidx;
 	}
 
 	outptr = (Py_ssize_t)Obj;
@@ -250,11 +250,11 @@ static CdGDSObj* get_obj(int idx, Py_ssize_t ptr_int)
 
 	CdGDSObj *ptr = (CdGDSObj *)ptr_int;
 	// check
-	if ((idx < 0) || (idx >= (int)PYGDS_GDSObj_List.size()))
+	if ((idx < 0) || (idx >= (int)PKG_GDSObj_List.size()))
 		throw ErrGDSFmt(ERR_GDS_OBJ);
 	if (ptr == NULL)
 		throw ErrGDSFmt(ERR_GDS_OBJ);
-	if (PYGDS_GDSObj_List[idx] != ptr)
+	if (PKG_GDSObj_List[idx] != ptr)
 		throw ErrGDSFmt(ERR_GDS_OBJ2);
 
 	return ptr;

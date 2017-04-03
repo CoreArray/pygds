@@ -68,10 +68,10 @@ namespace pygds
 
 
 	/// a list of GDS objects
-	COREARRAY_DLL_LOCAL vector<PdGDSObj> PYGDS_GDSObj_List;
+	COREARRAY_DLL_LOCAL vector<PdGDSObj> PKG_GDSObj_List;
 
 	/// mapping from GDS objects to indices
-	COREARRAY_DLL_LOCAL map<PdGDSObj, int> PYGDS_GDSObj_Map;
+	COREARRAY_DLL_LOCAL map<PdGDSObj, int> PKG_GDSObj_Map;
 
 
 	/// initialization and finalization
@@ -82,14 +82,14 @@ namespace pygds
 		CInitObject()
 		{
 			memset(PKG_GDS_Files, 0, sizeof(PKG_GDS_Files));
-			PYGDS_GDSObj_List.reserve(1024);
+			PKG_GDSObj_List.reserve(1024);
 		}
 
 		/// finalization
 		~CInitObject()
 		{
-			PYGDS_GDSObj_List.clear();
-			PYGDS_GDSObj_Map.clear();
+			PKG_GDSObj_List.clear();
+			PKG_GDSObj_Map.clear();
 
 			for (int i=0; i < PKG_MAX_NUM_GDS_FILES; i++)
 			{
@@ -369,9 +369,9 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 	{
 		PKG_GDS_Files[gds_idx] = NULL;
 
-		// delete GDS objects in PYGDS_GDSObj_List and PYGDS_GDSObj_Map
-		vector<PdGDSObj>::iterator p = PYGDS_GDSObj_List.begin();
-		for (; p != PYGDS_GDSObj_List.end(); p++)
+		// delete GDS objects in PKG_GDSObj_List and PKG_GDSObj_Map
+		vector<PdGDSObj>::iterator p = PKG_GDSObj_List.begin();
+		for (; p != PKG_GDSObj_List.end(); p++)
 		{
 			if (*p != NULL)
 			{
@@ -386,7 +386,7 @@ COREARRAY_DLL_EXPORT void GDS_File_Close(PdGDSFile File)
 				// Obj is the root, and then get the GDS file
 				if (Obj->GDSFile() == File)
 				{
-					PYGDS_GDSObj_Map.erase(*p);
+					PKG_GDSObj_Map.erase(*p);
 					*p = NULL;
 				}
 			}
@@ -421,10 +421,10 @@ COREARRAY_DLL_EXPORT void GDS_Node_Delete(PdGDSObj Node, C_BOOL Force)
 		vector<C_BOOL> DeleteArray;
 		if (dynamic_cast<CdGDSAbsFolder*>(Node))
 		{
-			DeleteArray.resize(PYGDS_GDSObj_List.size(), false);
+			DeleteArray.resize(PKG_GDSObj_List.size(), false);
 			size_t idx = 0;
-			vector<PdGDSObj>::iterator p = PYGDS_GDSObj_List.begin();
-			for (; p != PYGDS_GDSObj_List.end(); p++)
+			vector<PdGDSObj>::iterator p = PKG_GDSObj_List.begin();
+			for (; p != PKG_GDSObj_List.end(); p++)
 			{
 				if (*p != NULL)
 				{
@@ -440,11 +440,11 @@ COREARRAY_DLL_EXPORT void GDS_Node_Delete(PdGDSObj Node, C_BOOL Force)
 		else
 			throw ErrGDSFmt("Can not delete the root.");
 
-		// delete GDS objects in PYGDS_GDSObj_List and PYGDS_GDSObj_Map
-		vector<PdGDSObj>::iterator p = PYGDS_GDSObj_List.begin();
-		for (; p != PYGDS_GDSObj_List.end(); p++)
+		// delete GDS objects in PKG_GDSObj_List and PKG_GDSObj_Map
+		vector<PdGDSObj>::iterator p = PKG_GDSObj_List.begin();
+		for (; p != PKG_GDSObj_List.end(); p++)
 			if (*p == Node) *p = NULL;
-		PYGDS_GDSObj_Map.erase(Node);
+		PKG_GDSObj_Map.erase(Node);
 
 		if (!DeleteArray.empty())
 		{
@@ -454,8 +454,8 @@ COREARRAY_DLL_EXPORT void GDS_Node_Delete(PdGDSObj Node, C_BOOL Force)
 			{
 				if (*p)
 				{
-					PdGDSObj &Obj = PYGDS_GDSObj_List[idx];
-					PYGDS_GDSObj_Map.erase(Obj);
+					PdGDSObj &Obj = PKG_GDSObj_List[idx];
+					PKG_GDSObj_Map.erase(Obj);
 					Obj = NULL;
 				}
 				idx ++;
