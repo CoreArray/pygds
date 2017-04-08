@@ -10,6 +10,21 @@ import pygds.ccall as cc
 # ===========================================================================
 
 def cleanup_gds(filename, verbose=True):
+	"""Clean up fragments
+
+	Clean up the fragments of a CoreArray Genomic Data Structure (GDS) file.
+
+	Parameters
+	----------
+	filename : str
+			the file name of an existing GDS file
+	verbose : bool
+		if True, show information
+
+	Returns
+	-------
+	None
+	"""
 	cc.tidy_up(filename, verbose)
 
 
@@ -33,7 +48,18 @@ def get_include():
 
 
 def get_example_path(filename=None):
-	"""
+	"""Example files
+
+	Return a file name in the folder of example data.
+
+	Parameters
+	----------
+	filename : str
+		a file name in the folder of example data, or None for returning the path of example folder
+
+	Returns
+	-------
+	string
 	"""
 	import pygds
 	s = os.path.dirname(pygds.__file__)
@@ -92,7 +118,7 @@ class gdsfile:
 		Parameters
 		----------
 		filename : str
-			the file name of a new GDS file to be created
+			the file name of an existing GDS file
 		readonly : bool
 			if True, the file is opened read-only; otherwise, it is allowed to write data to the file
 		allow_dup : bool
