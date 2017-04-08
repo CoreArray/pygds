@@ -35,9 +35,9 @@ def get_include():
 # ===========================================================================
 
 class gdsfile:
-	'''
+	"""
 	Common base class for GDS files
-	'''
+	"""
 
 	def __init__(self):
 		self.filename = ''
@@ -47,10 +47,50 @@ class gdsfile:
 		self.close()
 
 	def create(self, filename, allow_dup=False):
+		"""Create a GDS file
+
+		Create a new CoreArray Genomic Data Structure (GDS) file.
+
+		Parameters
+		----------
+		filename : string
+			the file name of a new GDS file to be created
+		allow_dup : bool
+			if True, it is allowed to open a GDS file with read-only mode when it has been opened in the same session
+
+		Returns
+		-------
+		None
+
+		See Also
+		--------
+		open : open an existing GDS file
+		"""
 		self.fileid = cc.create_gds(filename, allow_dup)
 		self.filename = filename
 
 	def open(self, filename, readonly=True, allow_dup=False):
+		"""Open an GDS file
+
+		Open an existing file of CoreArray Genomic Data Structure (GDS) for reading or writing.
+
+		Parameters
+		----------
+		filename : string
+			the file name of a new GDS file to be created
+		readonly : bool
+			if True, the file is opened read-only; otherwise, it is allowed to write data to the file
+		allow_dup : bool
+			if True, it is allowed to open a GDS file with read-only mode when it has been opened in the same session
+
+		Returns
+		-------
+		None
+
+		See Also
+		--------
+		create : create a GDS file
+		"""
 		self.fileid = cc.open_gds(filename, readonly, allow_dup)
 		self.filename = filename
 
@@ -92,9 +132,9 @@ class gdsfile:
 
 
 class gdsnode:
-	'''
+	"""
 	Common base class for GDS node
-	'''
+	"""
 
 	def __init__(self):
 		self.idx = -1
