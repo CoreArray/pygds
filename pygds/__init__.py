@@ -246,7 +246,16 @@ class gdsfile:
 		-------
 		None
 		"""
-		print('File:', self.filename)
+		sz = self.filesize()
+		if sz >= 1073741824:
+			s = '(%.1fG)' % (sz/1073741824)
+		elif sz >= 1048576:
+			s = '(%.1fM)' % (sz/1048576)
+		elif sz >= 1024:
+			s = '(%.1fK)' % (sz/1024)
+		else:
+			s = '(%gB)' % sz
+		print('File:', self.filename, s)
 		self.root().show(attribute, all)
 
 

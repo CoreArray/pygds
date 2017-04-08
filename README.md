@@ -41,7 +41,7 @@ Zheng X, Gogarten S, Lawrence M, Stilp A, Conomos M, Weir BS, Laurie C, Levine D
 ```Python
 import pygds as gds
 
-fn = get_example_path('ceu_exon.gds')
+fn = gds.get_example_path('ceu_exon.gds')
 f = gds.gdsfile()
 f.open(fn)
 f.show()
@@ -49,7 +49,7 @@ f.close()
 ```
 
 ```
-File: pygds/data/ceu_exon.gds
+File: pygds/data/ceu_exon.gds (50.2K)
 +    [  ] *
 |--+ description   [  ] *
 |--+ sample.id   { Str8 90 LZMA_ra(35.8%), 258B } *
@@ -70,21 +70,7 @@ File: pygds/data/ceu_exon.gds
 |--+ annotation   [  ]
 |  |--+ id   { Str8 1348 LZMA_ra(38.4%), 5.5K } *
 |  |--+ qual   { Float32 1348 LZMA_ra(2.26%), 122B } *
-|  |--+ filter   { Int32,factor 1348 LZMA_ra(2.26%), 122B } *
-|  |--+ info   [  ]
-|  |  |--+ AA   { Str8 1348 LZMA_ra(25.6%), 690B } *
-|  |  |--+ AC   { Int32 1348 LZMA_ra(24.2%), 1.3K } *
-|  |  |--+ AN   { Int32 1348 LZMA_ra(19.8%), 1.0K } *
-|  |  |--+ DP   { Int32 1348 LZMA_ra(47.9%), 2.5K } *
-|  |  |--+ HM2   { Bit1 1348 LZMA_ra(150.3%), 254B } *
-|  |  |--+ HM3   { Bit1 1348 LZMA_ra(150.3%), 254B } *
-|  |  |--+ OR   { Str8 1348 LZMA_ra(20.1%), 342B } *
-|  |  |--+ GP   { Str8 1348 LZMA_ra(24.4%), 3.8K } *
-|  |  \--+ BN   { Int32 1348 LZMA_ra(20.9%), 1.1K } *
-|  \--+ format   [  ]
-|     \--+ DP   [  ] *
-|        |--+ data   { Int32 1348x90 LZMA_ra(25.1%), 118.8K } *
-|        \--+ ~data   { Int32 90x1348 LZMA_ra(24.1%), 114.2K }
+|  \--+ filter   { Int32,factor 1348 LZMA_ra(2.26%), 122B } *
 \--+ sample.annotation   [  ]
    \--+ family   { Str8 90 LZMA_ra(57.1%), 222B }
 ```
