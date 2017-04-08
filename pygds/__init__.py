@@ -46,6 +46,7 @@ class gdsfile:
 	def __del__(self):
 		self.close()
 
+
 	def create(self, filename, allow_dup=False):
 		"""Create a GDS file
 
@@ -69,6 +70,7 @@ class gdsfile:
 		"""
 		self.fileid = cc.create_gds(filename, allow_dup)
 		self.filename = filename
+
 
 	def open(self, filename, readonly=True, allow_dup=False):
 		"""Open an GDS file
@@ -96,6 +98,7 @@ class gdsfile:
 		self.fileid = cc.open_gds(filename, readonly, allow_dup)
 		self.filename = filename
 
+
 	def close(self):
 		"""Close a GDS file
 
@@ -114,6 +117,7 @@ class gdsfile:
 		self.fileid = -1
 		self.filename = ''
 
+
 	def sync(self):
 		"""Synchronize a GDS file
 
@@ -125,6 +129,7 @@ class gdsfile:
 		"""
 		cc.sync_gds(self.fileid)
 
+
 	def filesize(self):
 		"""Get the file size
 
@@ -135,6 +140,7 @@ class gdsfile:
 		double
 		"""
 		return cc.filesize(self.fileid)
+
 
 	def root(self):
 		"""GDS root node
@@ -148,6 +154,7 @@ class gdsfile:
 		v = gdsnode()
 		(v.idx, v.pid) = cc.root_gds(self.fileid)
 		return v
+
 
 	def index(self, path, silent=False):
 		"""Get a GDS node
@@ -171,6 +178,7 @@ class gdsfile:
 			return v
 		else:
 			return None
+
 
 	def show(self, attribute=False, all=False):
 		"""Display a GDS file
@@ -209,6 +217,7 @@ class gdsnode:
 		self.idx = -1
 		self.pid = 0
 
+
 	def ls(self, inc_hidden=False):
 		"""Get a list of names
 
@@ -224,6 +233,7 @@ class gdsnode:
 		a list of strings
 		"""
 		return cc.ls_gdsn(self.idx, self.pid, inc_hidden)
+
 
 	def index(self, path, silent=False):
 		"""Get a GDS node
@@ -248,6 +258,7 @@ class gdsnode:
 		else:
 			return None
 
+
 	def name(self, full=False):
 		"""Get the node name
 
@@ -263,6 +274,7 @@ class gdsnode:
 		string
 		"""
 		return cc.name_gdsn(self.idx, self.pid, full)
+
 
 	def rename(self, newname):
 		"""Rename a GDS node
@@ -280,6 +292,7 @@ class gdsnode:
 		"""
 		cc.rename_gdsn(self.idx, self.pid, newname)
 
+
 	def description(self):
 		"""Variable description
 
@@ -288,31 +301,32 @@ class gdsnode:
 		Returns
 		-------
 		dictionary:
-			name: the variable name of a specified node
-			fullname: the full name of a specified node
-			storage: the storage mode in the GDS file
-			trait: the description of data field, like "Int8"
-			type: a factor indicating the storage mode
-				Label -- a label node,
-				Folder -- a directory,
-				VFolder -- a virtual folder linking to another GDS file,
-				Raw -- raw data
-				Integer -- integers,
-				Factor -- factor values,
-				Logical -- logical values
-				Real -- floating numbers,
-				String -- characters,
-				Unknown -- unknown type
-			dim: the dimension of data field
-			encoder: encoder for compressed data, such like "ZIP"
-			compress: the compression method: "", "ZIP.max", etc
-			cpratio: data compression ratio, NaN indicates no compression
-			size: the size of data stored in the GDS file
-			good: logical, indicates the state of GDS file, e.g., False if the virtual folder fails to link the target GDS file
-			hidden: logical, True if it is a hidden object
-			message: if applicable, messages of the GDS node, such like error messages, log information
+		    name: the variable name of a specified node
+		    fullname: the full name of a specified node
+		    storage: the storage mode in the GDS file
+		    trait: the description of data field, like "Int8"
+		    type: a factor indicating the storage mode
+		        Label -- a label node,
+		        Folder -- a directory,
+		        VFolder -- a virtual folder linking to another GDS file,
+		        Raw -- raw data
+		        Integer -- integers,
+		        Factor -- factor values,
+		        Logical -- logical values
+		        Real -- floating numbers,
+		        String -- characters,
+		    Unknown -- unknown type
+		    dim: the dimension of data field
+		    encoder: encoder for compressed data, such like "ZIP"
+		    compress: the compression method: "", "ZIP.max", etc
+		    cpratio: data compression ratio, NaN indicates no compression
+		    size: the size of data stored in the GDS file
+		    good: logical, indicates the state of GDS file, e.g., False if the virtual folder fails to link the target GDS file
+		    hidden: logical, True if it is a hidden object
+		    message: if applicable, messages of the GDS node, such like error messages, log information
 		"""
 		return cc.desp_gdsn(self.idx, self.pid)
+
 
 	def getattr(self):
 		"""Get attributes
@@ -325,6 +339,7 @@ class gdsnode:
 		"""
 		return cc.getattr_gdsn(self.idx, self.pid)
 
+
 	def read(self, start=None, count=None, cvt=''):
 		"""Read data
 
@@ -335,6 +350,7 @@ class gdsnode:
 		a numpy array object
 		"""
 		return cc.read_gdsn(self.idx, self.pid, start, count, cvt)
+
 
 	def readex(self):
 		return 1
