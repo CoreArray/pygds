@@ -46,6 +46,6 @@ setup(name='pygds',
 		libraries = [ 'z', 'lzma' ]
 	) ],
 	package_data = {
-		'pygds': [ 'include/*.h' ]
+		'pygds': [ 'include/*.h', 'data/*.gds' ]
 	}
 )
