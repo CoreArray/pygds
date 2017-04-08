@@ -49,7 +49,7 @@ f.close()
 ```
 
 ```
-File: pygds/data/ceu_exon.gds (50.2K)
+File: pygds/data/ceu_exon.gds (32.5K)
 +    [  ] *
 |--+ description   [  ] *
 |--+ sample.id   { Str8 90 LZMA_ra(35.8%), 258B } *
@@ -59,12 +59,10 @@ File: pygds/data/ceu_exon.gds (50.2K)
 |--+ allele   { Str8 1348 LZMA_ra(16.7%), 902B } *
 |--+ genotype   [  ] *
 |  |--+ data   { Bit2 1348x90x2 LZMA_ra(26.3%), 15.6K } *
-|  |--+ ~data   { Bit2 90x1348x2 LZMA_ra(29.3%), 17.3K }
 |  |--+ extra.index   { Int32 0x3 LZMA_ra, 19B } *
 |  \--+ extra   { Int16 0 LZMA_ra, 19B }
 |--+ phase   [  ]
 |  |--+ data   { Bit1 1348x90 LZMA_ra(0.91%), 138B } *
-|  |--+ ~data   { Bit1 90x1348 LZMA_ra(0.91%), 138B }
 |  |--+ extra.index   { Int32 0x3 LZMA_ra, 19B } *
 |  \--+ extra   { Bit1 0 LZMA_ra, 19B }
 |--+ annotation   [  ]
