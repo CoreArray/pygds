@@ -65,6 +65,7 @@ class gdsfile:
 		See Also
 		--------
 		open : open an existing GDS file
+		close: close a GDS file
 		"""
 		self.fileid = cc.create_gds(filename, allow_dup)
 		self.filename = filename
@@ -90,27 +91,80 @@ class gdsfile:
 		See Also
 		--------
 		create : create a GDS file
+		close: close a GDS file
 		"""
 		self.fileid = cc.open_gds(filename, readonly, allow_dup)
 		self.filename = filename
 
 	def close(self):
+		"""Close a GDS file
+
+		Close a CoreArray Genomic Data Structure (GDS) file.
+
+		Returns
+		-------
+		None
+
+		See Also
+		--------
+		create : create a GDS file
+		open : open an existing GDS file
+		"""
 		cc.close_gds(self.fileid)
 		self.fileid = -1
 		self.filename = ''
 
 	def sync(self):
+		"""Synchronize a GDS file
+
+		Write the data cached in memory to disk.
+
+		Returns
+		-------
+		None
+		"""
 		cc.sync_gds(self.fileid)
 
 	def filesize(self):
+		"""Get the file size
+
+		Get the size of a GDS file.
+
+		Returns
+		-------
+		double
+		"""
 		return cc.filesize(self.fileid)
 
 	def root(self):
+		"""GDS root node
+
+		Get the root of a GDS file.
+
+		Returns
+		-------
+		gdsnode
+		"""
 		v = gdsnode()
 		(v.idx, v.pid) = cc.root_gds(self.fileid)
 		return v
 
 	def index(self, path, silent=False):
+		"""Get a GDS node
+
+		Get a specified GDS node with a given path
+
+		Parameters
+		----------
+		path : string
+			the path specifying a GDS node with '/' as a separator
+		silent : bool
+			if True, return None if the specified node does not exist; otherwise raise an error
+
+		Returns
+		-------
+		gdsnode
+		"""
 		v = gdsnode()
 		v.idx, v.pid = cc.index_gds(self.fileid, path, silent)
 		if v.idx >= 0:
@@ -118,9 +172,24 @@ class gdsfile:
 		else:
 			return None
 
-	def show(self, all=False, attribute=False):
+	def show(self, attribute=False, all=False):
+		"""Display the GDS file
+
+		Display the structure of a GDS file.
+
+		Parameters
+		----------
+		attribute : bool
+			if True, show the attribute(s)
+		all : bool
+			if False, hide GDS nodes with an attribute "R.invisible"
+
+		Returns
+		-------
+		None
+		"""
 		print('File:', self.filename)
-		self.root().show(all, attribute)
+		self.root().show(attribute, all)
 
 
 
@@ -170,7 +239,7 @@ class gdsnode:
 		return 1
 
 
-	def show(self, all=False, attribute=False, expand=True):
+	def show(self, attribute=False, all=False, expand=True):
 
 		def enum(node, prefix, fullname, last, attr, expand):
 			d = node.description()
