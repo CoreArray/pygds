@@ -281,12 +281,59 @@ class gdsnode:
 		cc.rename_gdsn(self.idx, self.pid, newname)
 
 	def description(self):
+		"""Variable description
+
+		Get the description of a GDS node.
+
+		Returns
+		-------
+		dictionary:
+			name: the variable name of a specified node
+			fullname: the full name of a specified node
+			storage: the storage mode in the GDS file
+			trait: the description of data field, like "Int8"
+			type: a factor indicating the storage mode
+				Label -- a label node,
+				Folder -- a directory,
+				VFolder -- a virtual folder linking to another GDS file,
+				Raw -- raw data
+				Integer -- integers,
+				Factor -- factor values,
+				Logical -- logical values
+				Real -- floating numbers,
+				String -- characters,
+				Unknown -- unknown type
+			dim: the dimension of data field
+			encoder: encoder for compressed data, such like "ZIP"
+			compress: the compression method: "", "ZIP.max", etc
+			cpratio: data compression ratio, NaN indicates no compression
+			size: the size of data stored in the GDS file
+			good: logical, indicates the state of GDS file, e.g., False if the virtual folder fails to link the target GDS file
+			hidden: logical, True if it is a hidden object
+			message: if applicable, messages of the GDS node, such like error messages, log information
+		"""
 		return cc.desp_gdsn(self.idx, self.pid)
 
 	def getattr(self):
+		"""Get attributes
+
+		Get the attributes of a GDS node.
+
+		Returns
+		-------
+		dictionary of attributes
+		"""
 		return cc.getattr_gdsn(self.idx, self.pid)
 
 	def read(self, start=None, count=None, cvt=''):
+		"""Read data
+
+		Read data field of a GDS node.
+
+		Returns
+		-------
+		a numpy array object
+		"""
 		return cc.read_gdsn(self.idx, self.pid, start, count, cvt)
 
 	def readex(self):
