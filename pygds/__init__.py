@@ -60,6 +60,10 @@ def get_example_path(filename=None):
 	Returns
 	-------
 	string
+
+	Examples
+	--------
+	>>> get_example_path('ceu_exon.gds')
 	"""
 	import pygds
 	s = os.path.dirname(pygds.__file__)
@@ -132,6 +136,14 @@ class gdsfile:
 		--------
 		create : create a GDS file
 		close: close a GDS file
+
+		Examples
+		--------
+		>>> fn = get_example_path('ceu_exon.gds')
+		>>> f = gds.gdsfile()
+		>>> f.open(fn)
+		>>> f.show()
+		>>> f.close()
 		"""
 		self.fileid = cc.open_gds(filename, readonly, allow_dup)
 		self.filename = filename
@@ -360,7 +372,7 @@ class gdsnode:
 		    cpratio: data compression ratio, NaN indicates no compression
 		    size: the size of data stored in the GDS file
 		    good: logical, indicates the state of GDS file, e.g., False if the virtual folder fails to link the target GDS file
-		    hidden: logical, True if it is a hidden object
+		    hidden: logical, True if it is a hidden node
 		    message: if applicable, messages of the GDS node, such like error messages, log information
 		"""
 		return cc.desp_gdsn(self.idx, self.pid)
