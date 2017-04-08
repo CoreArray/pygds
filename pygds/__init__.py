@@ -53,7 +53,7 @@ class gdsfile:
 
 		Parameters
 		----------
-		filename : string
+		filename : str
 			the file name of a new GDS file to be created
 		allow_dup : bool
 			if True, it is allowed to open a GDS file with read-only mode when it has been opened in the same session
@@ -77,7 +77,7 @@ class gdsfile:
 
 		Parameters
 		----------
-		filename : string
+		filename : str
 			the file name of a new GDS file to be created
 		readonly : bool
 			if True, the file is opened read-only; otherwise, it is allowed to write data to the file
@@ -156,7 +156,7 @@ class gdsfile:
 
 		Parameters
 		----------
-		path : string
+		path : str
 			the path specifying a GDS node with '/' as a separator
 		silent : bool
 			if True, return None if the specified node does not exist; otherwise raise an error
@@ -173,7 +173,7 @@ class gdsfile:
 			return None
 
 	def show(self, attribute=False, all=False):
-		"""Display the GDS file
+		"""Display a GDS file
 
 		Display the structure of a GDS file.
 
@@ -210,9 +210,37 @@ class gdsnode:
 		self.pid = 0
 
 	def ls(self, inc_hidden=False):
+		"""Get a list of names
+
+		Get a list of names for its child nodes.
+
+		Parameters
+		----------
+		inc_hidden : bool
+			whether including hidden variables or folders
+
+		Returns
+		-------
+		a list of strings
+		"""
 		return cc.ls_gdsn(self.idx, self.pid, inc_hidden)
 
 	def index(self, path, silent=False):
+		"""Get a GDS node
+
+		Get a specified GDS node with a given path
+
+		Parameters
+		----------
+		path : str
+			the path specifying a GDS node with '/' as a separator
+		silent : bool
+			if True, return None if the specified node does not exist; otherwise raise an error
+
+		Returns
+		-------
+		gdsnode
+		"""
 		v = gdsnode()
 		v.idx, v.pid = cc.index_gdsn(self.idx, self.pid, path, silent)
 		if v.idx >= 0:
@@ -221,9 +249,35 @@ class gdsnode:
 			return None
 
 	def name(self, full=False):
+		"""Get the node name
+
+		Get the variable name of a GDS node.
+
+		Parameters
+		----------
+		full : bool
+			if False, return the node name; otherwise the name with a full path
+
+		Returns
+		-------
+		string
+		"""
 		return cc.name_gdsn(self.idx, self.pid, full)
 
 	def rename(self, newname):
+		"""Rename a GDS node
+
+		Rename a GDS node.
+
+		Parameters
+		----------
+		newname : str
+			the new name of a specified node
+
+		Returns
+		-------
+		None
+		"""
 		cc.rename_gdsn(self.idx, self.pid, newname)
 
 	def description(self):
@@ -240,6 +294,21 @@ class gdsnode:
 
 
 	def show(self, attribute=False, all=False, expand=True):
+		"""Display a GDS node
+
+		Display the structure of a GDS node.
+
+		Parameters
+		----------
+		attribute : bool
+			if True, show the attribute(s)
+		all : bool
+			if False, hide GDS nodes with an attribute "R.invisible"
+
+		Returns
+		-------
+		None
+		"""
 
 		def enum(node, prefix, fullname, last, attr, expand):
 			d = node.description()
