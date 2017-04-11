@@ -38,7 +38,7 @@ Zheng X, Gogarten S, Lawrence M, Stilp A, Conomos M, Weir BS, Laurie C, Levine D
 
 ## Examples
 
-```Python
+```python
 import pygds as gds
 
 fn = gds.get_example_path('ceu_exon.gds')
