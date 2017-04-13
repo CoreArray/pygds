@@ -109,11 +109,16 @@ extern "C" {
     #   define PyInt_AsLong          PyLong_AsLong
 	#   define PYSTR_SET(s)          PyUnicode_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyUnicode_FromStringAndSize(s, len)
+	#   define PYSTR_IS(s)           PyUnicode_Check(s)
+	#   define PYSTR_CHAR(s)         PyUnicode_AsUTF8(s)
 
 	#else
 
 	#   define PYSTR_SET(s)          PyString_FromString(s)
 	#   define PYSTR_SET2(s, len)    PyString_FromStringAndSize(s, len)
+	#   define PYSTR_IS(s)           PyString_Check(s)
+	#   define PYSTR_CHAR(s)         PyString_AsString(s)
+
 	#   define PyCapsule_New(p, name, destructor)    (PyCObject_FromVoidPtr(p, destructor))
 	#   define PyCapsule_CheckExact(p)    (PyCObject_Check(p))
 	#   define PyCapsule_GetPointer(capsule, name)    (PyCObject_AsVoidPtr(capsule))
