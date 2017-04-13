@@ -6,6 +6,8 @@ pygds: Python Interface to CoreArray Genomic Data Structure (GDS) Files
 
 [![Build Status](https://travis-ci.org/CoreArray/pygds.png)](https://travis-ci.org/CoreArray/pygds)
 
+pre-release version: v0.1
+
 
 ## Features
 
@@ -15,6 +17,13 @@ This package provides a high-level Python interface to CoreArray Genomic Data St
 ## Package Maintainer
 
 Dr. Xiuwen Zheng ([zhengxwen@gmail.com](zhengxwen@gmail.com))
+
+
+## Prerequisites
+
+You need, at a minimum:
+
+Python v3.0 or later, NumPy 1.6.0 or later
 
 
 ## Installation

@@ -39,6 +39,7 @@ setup(name='pygds',
 		include_dirs = [ 'pygds/include', 'src/CoreArray', numpy.get_include() ],
 		define_macros = [
 			('USING_PYTHON', None),
+			('_FILE_OFFSET_BITS', 64),
 			('COREARRAY_USE_ZLIB_EXT', None),
 			('COREARRAY_USE_LZMA_EXT', None),
 			('COREARRAY_NO_LZ4', None),
