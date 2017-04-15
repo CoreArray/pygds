@@ -204,10 +204,7 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 				SV = svInt32;
 				npy_type = NPY_OBJECT;
 				bool_factor = true;
-			}
-		} else {
-			if (SV == svCustom)
-			{
+			} else {
 				SV = Obj->SVType();
 				if (SV == svCustomInt)
 					SV = svInt64;
@@ -217,9 +214,9 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 					SV = svFloat64;
 				else if (SV == svCustomStr)
 					SV = svStrUTF8;
+				if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
+					npy_type = sv2npy[SV];
 			}
-			if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
-				npy_type = sv2npy[SV];
 		}
 
 		if (npy_type == NPY_VOID)
