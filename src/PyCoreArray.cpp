@@ -190,12 +190,21 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 	try
 	{
 		bool bool_flag = GDS_Is_RLogical(Obj);
+		bool bool_factor = false;
 		NPY_TYPES npy_type = NPY_VOID;
 
-		if (SV==svCustom && bool_flag)
+		if (SV==svCustom)
 		{
-			SV = svInt8;
-			npy_type = NPY_BOOL;
+			if (bool_flag)
+			{
+				SV = svInt8;
+				npy_type = NPY_BOOL;
+			} else if (GDS_Is_RFactor(Obj))
+			{
+				SV = svInt32;
+				npy_type = NPY_OBJECT;
+				bool_factor = true;
+			}
 		} else {
 			if (SV == svCustom)
 			{
@@ -239,7 +248,55 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 		PyObject *rv_ans = PyArray_SimpleNew(ndim, dims, npy_type);
 
 		// read
-		if (COREARRAY_SV_NUMERIC(SV))
+		if (bool_factor)
+		{
+			// it is an R factor
+			int nlevels = 0;
+			CdAny &attr = Obj->Attribute()[ASC16("R.levels")];
+			if (attr.IsString())
+				nlevels = 1;
+			else if (attr.IsArray())
+				nlevels = attr.GetArrayLength();
+			// save factor strings
+			PyObject *Levels = PyList_New(nlevels);
+			if (attr.IsString())
+			{
+				const UTF8String &s = attr.GetStr8();
+				PyObject *x = PYSTR_SET2(s.c_str(), s.size());
+				PyList_SetItem(Levels, 0, x);
+			} else if (attr.IsArray())
+			{
+				CdAny *p = attr.GetArray();
+				for (int i=0; i < nlevels; i++, p++)
+				{
+					const UTF8String &s = p->GetStr8();
+					PyObject *x = PYSTR_SET2(s.c_str(), s.size());
+					PyList_SetItem(Levels, i, x);
+				}
+			}
+			// load integers
+			const size_t n = PyArray_SIZE(rv_ans);
+			vector<C_Int32> intbuf(n);
+			if (!Selection)
+				Obj->ReadData(Start, Length, &intbuf[0], svInt32);
+			else
+				Obj->ReadDataEx(Start, Length, Selection, &intbuf[0], svInt32);
+			// match factor strings
+			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
+			for (size_t i=0; i < n; i++)
+			{
+				int v = intbuf[i];
+				PyObject *x;
+				if ((0 < v) && (v <= nlevels))
+					x = PyList_GET_ITEM(Levels, v-1);
+				else
+					x = Py_None;
+				Py_INCREF(x);
+				PyArray_SETITEM(rv_ans, p++, x);
+			}
+			Py_DECREF(Levels);
+			
+		} else if (COREARRAY_SV_NUMERIC(SV))
 		{
 			void *datptr = PyArray_DATA(rv_ans);
 			if (!Selection)

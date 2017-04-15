@@ -404,6 +404,12 @@ class gdsnode:
 
 		Read data field of a GDS node.
 
+		Parameters
+		----------
+		cvt : str
+			'': no conversion; 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64': signed and unsigned integer;
+			'utf8': UTF-8 string; 'utf16': UTF-16 string
+
 		Returns
 		-------
 		a numpy array object
