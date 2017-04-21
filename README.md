@@ -25,6 +25,8 @@ You need, at a minimum:
 
 Python v3.0 or later, NumPy 1.6.0 or later
 
+Python tests: v3.3, v3.4, v3.5, v3.6
+
 
 ## Installation
 
