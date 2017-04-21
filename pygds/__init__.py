@@ -417,8 +417,24 @@ class gdsnode:
 		return cc.read_gdsn(self.idx, self.pid, start, count, cvt)
 
 
-	def readex(self):
-		return 1
+	def readex(self, sel, cvt=''):
+		"""Read data with selection
+
+		Read data field of a GDS node with selection
+
+		Parameters
+		----------
+		sel : a list of bool vectors
+			bool vectors indicating dimension selection
+		cvt : str
+			'': no conversion; 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64': signed and unsigned integer;
+			'utf8': UTF-8 string; 'utf16': UTF-16 string
+
+		Returns
+		-------
+		a numpy array object
+		"""
+		return None
 
 
 	def show(self, attribute=False, all=False, expand=True):

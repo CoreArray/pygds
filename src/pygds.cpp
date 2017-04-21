@@ -839,7 +839,6 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 		return rv;
 
 	COREARRAY_CATCH_NONE
-	return NULL;
 }
 
 
