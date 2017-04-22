@@ -217,6 +217,9 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 				if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
 					npy_type = sv2npy[SV];
 			}
+		} else {
+			if ((0 <= SV) && (SV < sizeof(sv2npy)/sizeof(NPY_TYPES)))
+				npy_type = sv2npy[SV];
 		}
 
 		if (npy_type == NPY_VOID)
