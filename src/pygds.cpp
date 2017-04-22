@@ -951,11 +951,13 @@ static struct PyModuleDef ModStruct =
 };
 
 PyMODINIT_FUNC PyInit_ccall()
-#else
-PyMODINIT_FUNC initccall()
-#endif
 {
 	if (!pygds_init()) return NULL;
+#else
+PyMODINIT_FUNC initccall()
+{
+	pygds_init();
+#endif
 
 	// create the module and add the functions
 	PyObject *mod;
@@ -980,7 +982,9 @@ PyMODINIT_FUNC initccall()
 		}
 	}
 
+#if PY_MAJOR_VERSION >= 3
 	return mod;
+#endif
 }
 
 }

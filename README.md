@@ -21,11 +21,9 @@ Dr. Xiuwen Zheng ([zhengxwen@gmail.com](zhengxwen@gmail.com))
 
 ## Prerequisites
 
-You need, at a minimum:
+Python 2 (2.6-2.7), and Python 3 (3.3-3.6)
 
-Python v3.0 or later, NumPy 1.6.0 or later
-
-Python tests: v3.3, v3.4, v3.5, v3.6
+NumPy 1.6.0 or later
 
 
 ## Installation

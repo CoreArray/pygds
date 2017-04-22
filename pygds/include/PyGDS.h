@@ -34,10 +34,34 @@
 
 
 #ifdef __cplusplus
+	#if PY_MAJOR_VERSION < 3
+	#   ifdef isupper
+	#       undef isupper
+	#   endif
+	#   ifdef islower
+	#       undef islower
+	#   endif
+	#   ifdef toupper
+	#       undef toupper
+	#   endif
+	#   ifdef tolower
+	#       undef tolower
+	#   endif
+	#   ifdef isspace
+	#       undef isspace
+	#   endif
+	#   ifdef isalpha
+	#       undef isalpha
+	#   endif
+	#   ifdef isalnum
+	#       undef isalnum
+	#   endif
+	#endif
 #   ifdef COREARRAY_PYGDS_PACKAGE
 #       include <CoreArray.h>
         using namespace CoreArray;
 #   endif
+
 
 extern "C" {
 #endif
@@ -103,7 +127,7 @@ extern "C" {
 	#   define BSTR    "i"
 	#endif
 
-	#if (PY_MAJOR_VERSION >= 3)
+	#if PY_MAJOR_VERSION >= 3
 
     #   define PyInt_FromLong        PyLong_FromLong
     #   define PyInt_AsLong          PyLong_AsLong
@@ -119,9 +143,9 @@ extern "C" {
 	#   define PYSTR_IS(s)           PyString_Check(s)
 	#   define PYSTR_CHAR(s)         PyString_AsString(s)
 
-	#   define PyCapsule_New(p, name, destructor)    (PyCObject_FromVoidPtr(p, destructor))
-	#   define PyCapsule_CheckExact(p)    (PyCObject_Check(p))
-	#   define PyCapsule_GetPointer(capsule, name)    (PyCObject_AsVoidPtr(capsule))
+	#   define PyCapsule_New(p, name, destructor)   (PyCObject_FromVoidPtr(p, destructor))
+	#   define PyCapsule_CheckExact(p)              (PyCObject_Check(p))
+	#   define PyCapsule_GetPointer(capsule, name)  (PyCObject_AsVoidPtr(capsule))
 
 	#endif
 
