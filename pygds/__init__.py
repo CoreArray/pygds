@@ -67,7 +67,7 @@ def get_example_path(filename=None):
 	"""
 	import pygds
 	s = os.path.dirname(pygds.__file__)
-	if filename == None:
+	if filename is None:
 		return os.path.join(s, 'data')
 	else:
 		return os.path.join(s, 'data', filename)
