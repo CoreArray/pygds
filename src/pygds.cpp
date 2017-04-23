@@ -721,18 +721,8 @@ PY_EXPORT PyObject* gdsnDesp(PyObject *self, PyObject *args)
 // Data Operations
 // ----------------------------------------------------------------------------
 
-/// Read data from a GDS node
-PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
+static bool cvt2sv(const char *cvt, C_SVType &sv)
 {
-	int nidx;
-	Py_ssize_t ptr_int;
-	PyObject *start, *count;
-	const char *cvt;
-	if (!PyArg_ParseTuple(args, "inOOs", &nidx, &ptr_int, &start, &count, &cvt))
-		return NULL;
-
-	// check the argument 'cvt'
-	C_SVType sv;
 	if (strcmp(cvt, "") == 0)
 		sv = svCustom;
 	else if (strcmp(cvt, "int8") == 0)
@@ -761,8 +751,24 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 		sv = svStrUTF16;
 	else {
 		PyErr_SetString(PyExc_ValueError, "Invalid 'cvt'.");
-		return NULL;
+		return true;
 	}
+	return false;
+}
+
+/// Read data from a GDS node
+PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	PyObject *start, *count;
+	const char *cvt;
+	if (!PyArg_ParseTuple(args, "inOOs", &nidx, &ptr_int, &start, &count, &cvt))
+		return NULL;
+
+	// check the argument 'cvt'
+	C_SVType sv;
+	if (cvt2sv(cvt, sv)) return NULL;
 
 	// check the argument 'start'
 	CdAbstractArray::TArrayDim dm_st;
@@ -797,7 +803,6 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 		PyErr_SetString(PyExc_ValueError, "'start' and 'count' should be both None.");
 		return NULL;
 	}
-
 
 	COREARRAY_TRY
 
@@ -836,6 +841,64 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 		}
 
 		PyObject *rv = GDS_Py_Array_Read(Obj, pDS, pDL, NULL, sv);
+		return rv;
+
+	COREARRAY_CATCH_NONE
+}
+
+
+/// Read data from a GDS node
+PY_EXPORT PyObject* gdsnRead2(PyObject *self, PyObject *args)
+{
+	int nidx;
+	Py_ssize_t ptr_int;
+	PyObject *selection;
+	const char *cvt;
+	if (!PyArg_ParseTuple(args, "inOs", &nidx, &ptr_int, &selection, &cvt))
+		return NULL;
+
+	// check the argument 'cvt'
+	C_SVType sv;
+	if (cvt2sv(cvt, sv)) return NULL;
+
+	// check the argument 'sel'
+	if (!PyList_Check(selection))
+	{
+		PyErr_SetString(PyExc_ValueError, "'sel' should be a list.");
+		return NULL;
+	}
+
+	COREARRAY_TRY
+
+		CdGDSObj *obj = get_obj(nidx, ptr_int);
+		CdAbstractArray *Obj = dynamic_cast<CdAbstractArray*>(obj);
+		if (Obj == NULL)
+			throw ErrGDSFmt(ERR_NO_DATA);
+		if (PyList_Size(selection) != Obj->DimCnt())
+			throw ErrGDSFmt("The dimension of 'sel' is not correct.");
+
+		// set the selection
+		vector<C_BOOL*> SelList(Obj->DimCnt());
+		for (size_t i=0; i < SelList.size(); i++)
+		{
+			PyObject *sel = PyList_GET_ITEM(selection, i);
+			if (sel == Py_None)
+			{
+				SelList[i] = NULL;
+			} else {
+				extern C_BOOL *numpy_get_bool(PyObject *obj, size_t &num);
+				size_t n = 0;
+				C_BOOL *bs = numpy_get_bool(sel, n);
+				if (bs == NULL)
+					throw ErrGDSFmt("'sel[%d]' should be a bool numpy vector or None.", (int)i);
+				if (n != (size_t)Obj->GetDLen(i))
+					throw ErrGDSFmt("The length of 'sel[%d]' is not correct.", (int)i);
+				SelList[i] = bs;
+			}
+		}
+
+		// read data
+		PyObject *rv = GDS_Py_Array_Read(Obj, NULL, NULL, &(SelList[0]), sv);
 		return rv;
 
 	COREARRAY_CATCH_NONE
@@ -928,6 +991,7 @@ static PyMethodDef module_methods[] = {
 
 	// data operations
     { "read_gdsn", (PyCFunction)gdsnRead, METH_VARARGS, NULL },
+    { "read2_gdsn", (PyCFunction)gdsnRead2, METH_VARARGS, NULL },
 
 	// attribute operations
     { "getattr_gdsn", (PyCFunction)gdsnGetAttr, METH_VARARGS, NULL },

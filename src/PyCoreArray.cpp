@@ -770,10 +770,30 @@ COREARRAY_DLL_EXPORT int GDS_Mach_Finite(double val)
 
 
 
+// ===========================================================================
+// Python objects
+
+
+
+
 
 
 // ===========================================================================
-// R/Python objects
+// NumPy functions
+
+C_BOOL *numpy_get_bool(PyObject *obj, size_t &num)
+{
+	if (PyArray_Check(obj))
+	{
+		if (PyArray_TYPE(obj) == NPY_BOOL)
+		{
+			num = PyArray_SIZE(obj);
+			return (C_BOOL*)PyArray_DATA(obj);
+		}
+	}
+	return NULL;
+}
+
 
 
 
@@ -858,32 +878,6 @@ static TFUNC c_api[] = {
 	(TFUNC)GDS_R_Append);
 	(TFUNC)GDS_R_AppendEx);
 	(TFUNC)GDS_R_Is_Element);
-
-
-
-	// functions for parallel computing
-	(TFUNC)GDS_Parallel_InitMutex);
-	(TFUNC)GDS_Parallel_DoneMutex);
-	(TFUNC)GDS_Parallel_LockMutex);
-	(TFUNC)GDS_Parallel_TryLockMutex);
-	(TFUNC)GDS_Parallel_UnlockMutex);
-	(TFUNC)GDS_Parallel_InitCondition);
-	(TFUNC)GDS_Parallel_DoneCondition);
-	(TFUNC)GDS_Parallel_SignalCondition);
-	(TFUNC)GDS_Parallel_BroadcastCondition);
-	(TFUNC)GDS_Parallel_WaitCondition);
-	(TFUNC)GDS_Parallel_InitSuspend);
-	(TFUNC)GDS_Parallel_DoneSuspend);
-	(TFUNC)GDS_Parallel_Suspend);
-	(TFUNC)GDS_Parallel_WakeUp);
-	(TFUNC)GDS_Parallel_RunThreads);
-
-	// functions for reading block by block
-	(TFUNC)GDS_ArrayRead_Init);
-	(TFUNC)GDS_ArrayRead_Free);
-	(TFUNC)GDS_ArrayRead_Read);
-	(TFUNC)GDS_ArrayRead_Eof);
-	(TFUNC)GDS_ArrayRead_BalanceBuffer);
 */
 
 

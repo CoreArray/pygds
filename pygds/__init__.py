@@ -434,7 +434,7 @@ class gdsnode:
 		-------
 		a numpy array object
 		"""
-		return None
+		return cc.read2_gdsn(self.idx, self.pid, sel, cvt)
 
 
 	def show(self, attribute=False, all=False, expand=True):
