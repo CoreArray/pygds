@@ -56,7 +56,7 @@ setup(name='pygds',
 			('COREARRAY_USE_LZMA_EXT', None),
 			('COREARRAY_NO_LZ4', None),
 		],
-		libraries = [ 'z', 'lzma' ]
+		libraries = [ 'lzma' ]
 	) ],
 	package_data = {
 		'pygds': [ 'include/*.h', 'data/*.gds' ]
