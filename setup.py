@@ -19,6 +19,19 @@ corearray_fnlst = [ os.path.join('src', 'CoreArray', fn) for fn in [
 	'dStruct.cpp',
 	'dVLIntGDS.cpp' ] ]
 
+zlib_fnlst = [ os.path.join('src', 'ZLIB', fn) for fn in [
+	'adler32.c',
+	'compress.c',
+	'crc32.c',
+	'deflate.c',
+	'infback.c',
+	'inffast.c',
+	'inflate.c',
+	'inftrees.c',
+	'trees.c',
+	'uncompr.c',
+	'zutil.c' ] ]
+
 pygds_fnlst = [ os.path.join('src', fn) for fn in [
 	'PyCoreArray.cpp',
 	'pygds.cpp' ] ]
@@ -35,12 +48,11 @@ setup(name='pygds',
 	packages = [ 'pygds' ],
 	install_requires = [ 'numpy', 'pandas' ],
 	ext_modules = [ Extension('pygds.ccall',
-		corearray_fnlst + pygds_fnlst,
+		corearray_fnlst + zlib_fnlst + pygds_fnlst,
 		include_dirs = [ 'pygds/include', 'src/CoreArray', numpy.get_include() ],
 		define_macros = [
 			('USING_PYTHON', None),
 			('_FILE_OFFSET_BITS', 64),
-			('COREARRAY_USE_ZLIB_EXT', None),
 			('COREARRAY_USE_LZMA_EXT', None),
 			('COREARRAY_NO_LZ4', None),
 		],
