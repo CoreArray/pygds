@@ -406,6 +406,10 @@ class gdsnode:
 
 		Parameters
 		----------
+		start : a list of integers
+			starting from 0 for each dimension component
+		count : a list of integers
+			the length of each dimnension, -1 indicates that all entries along that dimension should be read, starting from 'start'
 		cvt : str
 			'': no conversion; 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64': signed and unsigned integer;
 			'utf8': UTF-8 string; 'utf16': UTF-16 string

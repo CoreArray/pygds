@@ -823,7 +823,7 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 			for (int i=0; i < Len; i++)
 			{
 				if ((dm_st[i] < 0) || (dm_st[i] >= DCnt[i]))
-					throw ErrGDSFmt("'start' is invalid.");
+					throw ErrGDSFmt("'start[%d]=%d' is invalid.", i, dm_st[i]);
 			}
 			pDS = dm_st;
 
@@ -834,8 +834,8 @@ PY_EXPORT PyObject* gdsnRead(PyObject *self, PyObject *args)
 				int &v = dm_cnt[i];
 				if (v == -1)
 					v = DCnt[i] - dm_st[i];
-				if ((v <= 0) || ((dm_st[i]+v) >= DCnt[i]))
-					throw ErrGDSFmt("'count' is invalid.");
+				if ((v <= 0) || ((dm_st[i]+v) > DCnt[i]))
+					throw ErrGDSFmt("'count[%d]=%d' is invalid.", i, v);
 			}
 			pDL = dm_cnt;
 		}
