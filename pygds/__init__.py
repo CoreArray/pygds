@@ -429,7 +429,7 @@ class gdsnode:
 		Parameters
 		----------
 		sel : a list of bool vectors
-			bool vectors indicating dimension selection
+			bool vectors indicating dimension selection, or None for all entries along that dimension
 		cvt : str
 			'': no conversion; 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64': signed and unsigned integer;
 			'utf8': UTF-8 string; 'utf16': UTF-16 string

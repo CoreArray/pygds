@@ -878,13 +878,16 @@ PY_EXPORT PyObject* gdsnRead2(PyObject *self, PyObject *args)
 			throw ErrGDSFmt("The dimension of 'sel' is not correct.");
 
 		// set the selection
+		vector< vector<C_BOOL> > tmpSel(Obj->DimCnt());
 		vector<C_BOOL*> SelList(Obj->DimCnt());
+
 		for (size_t i=0; i < SelList.size(); i++)
 		{
 			PyObject *sel = PyList_GET_ITEM(selection, i);
 			if (sel == Py_None)
 			{
-				SelList[i] = NULL;
+				tmpSel[i].resize(Obj->GetDLen(i), 1);
+				SelList[i] = &(tmpSel[i][0]);
 			} else {
 				extern C_BOOL *numpy_get_bool(PyObject *obj, size_t &num);
 				size_t n = 0;
