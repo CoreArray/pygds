@@ -111,7 +111,7 @@ class gdsfile:
 		close: close a GDS file
 		"""
 		self.fileid = cc.create_gds(filename, allow_dup)
-		self.filename = filename
+		self.filename = os.path.abspath(filename)
 
 
 	def open(self, filename, readonly=True, allow_dup=False):
@@ -146,7 +146,7 @@ class gdsfile:
 		>>> f.close()
 		"""
 		self.fileid = cc.open_gds(filename, readonly, allow_dup)
-		self.filename = filename
+		self.filename = os.path.abspath(filename)
 
 
 	def close(self):
