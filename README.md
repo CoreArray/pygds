@@ -2,7 +2,7 @@ pygds: Python Interface to CoreArray Genomic Data Structure (GDS) Files
 ===
 
 ![GPLv3](http://www.gnu.org/graphics/gplv3-88x31.png)
-[GNU General Public License, GPLv3](http://www.gnu.org/copyleft/gpl.html)
+[GNU General Public License, GPLv3](http://www.gnu.org/copyleft/gpl.html) (2017)
 
 [![Build Status](https://travis-ci.org/CoreArray/pygds.png)](https://travis-ci.org/CoreArray/pygds)
 
@@ -24,6 +24,8 @@ Dr. Xiuwen Zheng ([zhengxwen@gmail.com](zhengxwen@gmail.com))
 Python 2 (2.6-2.7), and Python 3 (3.3-3.6)
 
 NumPy 1.6.0 or later
+
+liblzma in [xz](https://tukaani.org/xz/) utilities
 
 
 ## Installation
