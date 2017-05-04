@@ -908,6 +908,139 @@ PY_EXPORT PyObject* gdsnRead2(PyObject *self, PyObject *args)
 }
 
 
+/// Write data to a node
+// PY_EXPORT PyObject* gdsnWrite(PyObject *self, PyObject *args)
+//{
+/** \param Node        [in] a GDS node
+ *  \param Val         [in] the values
+ *  \param Start       [in] the starting positions
+ *  \param Count       [in] the count
+ *  \param Check       [in] if TRUE, check any(is.na(val)) if val is character
+**/
+
+/*
+	if (!Rf_isNumeric(Val) && !Rf_isString(Val) && !Rf_isLogical(Val) &&
+			!Rf_isFactor(Val) && (TYPEOF(Val)!=RAWSXP))
+		error("'val' should be integer, numeric, character, logical or raw.");
+	if (!Rf_isNull(Start) && !Rf_isNumeric(Start))
+		error("'start' should be numeric.");
+	if (!Rf_isNull(Count) && !Rf_isNumeric(Count))
+		error("'count' should be numeric.");
+	if ((Rf_isNull(Start) && !Rf_isNull(Count)) ||
+			(!Rf_isNull(Start) && Rf_isNull(Count)))
+		error("'start' and 'count' should be both NULL.");
+	if (!Rf_isLogical(Check) || (XLENGTH(Check) <= 0))
+		error("'check' should be a logical variable.");
+
+	// GDS object
+	CdAbstractArray *Obj;
+	{
+		bool has_error = false;
+		CORE_TRY
+			Obj = dynamic_cast<CdAbstractArray*>(GDS_R_SEXP2Obj(Node, FALSE));
+			if (Obj == NULL)
+				throw ErrGDSFmt(ERR_NO_DATA);
+		CORE_CATCH(has_error = true);
+		if (has_error) error(GDS_GetError());
+	}
+
+	CdAbstractArray::TArrayDim DStart, DLen;
+	if (!Rf_isNull(Start) && !Rf_isNull(Count))
+	{
+		int Len = Obj->DimCnt();
+		CdAbstractArray::TArrayDim DCnt;
+		Obj->GetDim(DCnt);
+
+		PROTECT(Start = Rf_coerceVector(Start, INTSXP));
+		if (XLENGTH(Start) != Len)
+			error("The length of 'start' is invalid.");
+		for (int i=0; i < Len; i++)
+		{
+			int v = INTEGER(Start)[i];
+			if ((v < 1) || (v > DCnt[Len-i-1]))
+				error("'start' is invalid.");
+			DStart[Len-i-1] = v-1;
+		}
+
+		PROTECT(Count = Rf_coerceVector(Count, INTSXP));
+		if (XLENGTH(Count) != Len)
+			error("The length of 'count' is invalid.");
+		for (int i=0; i < Len; i++)
+		{
+			int v = INTEGER(Count)[i];
+			if (v == -1) v = DCnt[Len-i-1];
+			if ((v < 0) || ((DStart[Len-i-1]+v) > DCnt[Len-i-1]))
+				error("'count' is invalid.");
+			DLen[Len-i-1] = v;
+		}
+
+		UNPROTECT(2);
+
+		C_Int64 Cnt = 1;
+		for (int i=0; i < Len; i++)
+			Cnt *= DLen[i];
+		if (Cnt != (C_Int64)Rf_length(Val))
+			error("Invalid length of dimension of 'val'.");
+	}
+
+	COREARRAY_TRY
+
+		int nProtected = 0;
+		C_SVType ObjSV = Obj->SVType();
+
+		if (COREARRAY_SV_INTEGER(ObjSV))
+		{
+			if (TYPEOF(Val) != RAWSXP)
+			{
+				PROTECT(Val = Rf_coerceVector(Val, INTSXP));
+				nProtected ++;
+				Obj->WriteData(DStart, DLen, INTEGER(Val), svInt32);
+			} else {
+				Obj->WriteData(DStart, DLen, RAW(Val), svInt8);
+			}
+		} else if (COREARRAY_SV_FLOAT(ObjSV))
+		{
+			PROTECT(Val = Rf_coerceVector(Val, REALSXP));
+			nProtected ++;
+			Obj->WriteData(DStart, DLen, REAL(Val), svFloat64);
+		} else if (COREARRAY_SV_STRING(ObjSV))
+		{
+			PROTECT(Val = Rf_coerceVector(Val, STRSXP));
+			nProtected ++;
+			R_xlen_t Len = XLENGTH(Val);
+			if (Rf_asLogical(Check) == TRUE)
+			{
+				for (R_xlen_t i=0; i < Len; i++)
+				{
+					if (STRING_ELT(Val, i) == NA_STRING)
+					{
+						warning("Missing characters are converted to \"\".");
+						break;
+					}
+				}
+			}
+			vector<UTF8String> buf(Len);
+			for (R_xlen_t i=0; i < Len; i++)
+			{
+				SEXP s = STRING_ELT(Val, i);
+				if (s != NA_STRING)
+					buf[i] = UTF8Text(translateCharUTF8(s));
+			}
+			Obj->WriteData(DStart, DLen, &(buf[0]), svStrUTF8);
+		} else
+			throw ErrGDSFmt("No support!");
+
+		UNPROTECT(nProtected);
+	}
+	catch (ErrAllocWrite &E) {
+		GDS_SetError(ERR_READ_ONLY);
+		has_error = true;
+
+	COREARRAY_CATCH_NONE
+}
+*/
+
+
 
 // ----------------------------------------------------------------------------
 // Attribute Operations
@@ -976,28 +1109,29 @@ extern COREARRAY_DLL_LOCAL bool pygds_init();
 
 static PyMethodDef module_methods[] = {
 	// file operations
-    { "create_gds", (PyCFunction)gdsCreateGDS, METH_VARARGS, NULL },
-    { "open_gds", (PyCFunction)gdsOpenGDS, METH_VARARGS, NULL },
-    { "close_gds", (PyCFunction)gdsCloseGDS, METH_VARARGS, NULL },
-    { "sync_gds", (PyCFunction)gdsSyncGDS, METH_VARARGS, NULL },
-    { "filesize", (PyCFunction)gdsFileSize, METH_VARARGS, NULL },
-    { "tidy_up", (PyCFunction)gdsTidyUp, METH_VARARGS, NULL },
-    { "root_gds", (PyCFunction)gdsRoot, METH_VARARGS, NULL },
-    { "index_gds", (PyCFunction)gdsIndex, METH_VARARGS, NULL },
+	{ "create_gds", (PyCFunction)gdsCreateGDS, METH_VARARGS, NULL },
+	{ "open_gds", (PyCFunction)gdsOpenGDS, METH_VARARGS, NULL },
+	{ "close_gds", (PyCFunction)gdsCloseGDS, METH_VARARGS, NULL },
+	{ "sync_gds", (PyCFunction)gdsSyncGDS, METH_VARARGS, NULL },
+	{ "filesize", (PyCFunction)gdsFileSize, METH_VARARGS, NULL },
+	{ "tidy_up", (PyCFunction)gdsTidyUp, METH_VARARGS, NULL },
+	{ "root_gds", (PyCFunction)gdsRoot, METH_VARARGS, NULL },
+	{ "index_gds", (PyCFunction)gdsIndex, METH_VARARGS, NULL },
 
 	// file structure operations
-    { "ls_gdsn", (PyCFunction)gdsnListName, METH_VARARGS, NULL },
-    { "index_gdsn", (PyCFunction)gdsnIndex, METH_VARARGS, NULL },
-    { "name_gdsn", (PyCFunction)gdsnName, METH_VARARGS, NULL },
-    { "rename_gdsn", (PyCFunction)gdsnRename, METH_VARARGS, NULL },
-    { "desp_gdsn", (PyCFunction)gdsnDesp, METH_VARARGS, NULL },
+	{ "ls_gdsn", (PyCFunction)gdsnListName, METH_VARARGS, NULL },
+	{ "index_gdsn", (PyCFunction)gdsnIndex, METH_VARARGS, NULL },
+	{ "name_gdsn", (PyCFunction)gdsnName, METH_VARARGS, NULL },
+	{ "rename_gdsn", (PyCFunction)gdsnRename, METH_VARARGS, NULL },
+	{ "desp_gdsn", (PyCFunction)gdsnDesp, METH_VARARGS, NULL },
 
 	// data operations
-    { "read_gdsn", (PyCFunction)gdsnRead, METH_VARARGS, NULL },
-    { "read2_gdsn", (PyCFunction)gdsnRead2, METH_VARARGS, NULL },
+	{ "read_gdsn", (PyCFunction)gdsnRead, METH_VARARGS, NULL },
+	{ "read2_gdsn", (PyCFunction)gdsnRead2, METH_VARARGS, NULL },
+	{ "write_gdsn", (PyCFunction)gdsnRead, METH_VARARGS, NULL },
 
 	// attribute operations
-    { "getattr_gdsn", (PyCFunction)gdsnGetAttr, METH_VARARGS, NULL },
+	{ "getattr_gdsn", (PyCFunction)gdsnGetAttr, METH_VARARGS, NULL },
 
 	// end
 	{ NULL, NULL, 0, NULL }
