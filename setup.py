@@ -39,7 +39,7 @@ pygds_fnlst = [ os.path.join('src', fn) for fn in [
 
 
 setup(name='pygds',
-	version = '0.1',
+	version = '0.1.0',
 	description = 'Python Interface to CoreArray Genomic Data Structure (GDS) Files',
 	url = 'http://github.com/CoreArray/pygds',
 	author = 'Xiuwen Zheng',
