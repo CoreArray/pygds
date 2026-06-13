@@ -170,47 +170,15 @@ extern "C" {
 	/// convert "file_id  --> (CdGDSFolder*)"
 	extern PdGDSFolder GDS_ID2FileRoot(int file_id);
 
-/*
-	/// convert "SEXP  --> (CdGDSObj*)"
-	extern PdGDSObj GDS_R_SEXP2Obj(SEXP Obj, C_BOOL ReadOnly);
-
-	/// convert "(CdGDSObj*)  -->  SEXP", true for read-only
-	extern SEXP GDS_R_Obj2SEXP(PdGDSObj Obj);
-	/// convert "SEXP (ObjSrc)  -->  SEXP (ObjDst)", (requiring >= v1.5.8)
-	extern void GDS_R_Obj_SEXP2SEXP(SEXP ObjDst, SEXP ObjSrc);
-*/
-
-	/// return true, if Obj is a logical object in R (equivalent to BOOL)
+	/// return true, if Obj is a logical variable (an R.logical attribute)
 	extern C_BOOL GDS_Is_RLogical(PdGDSObj Obj);
-	/// return true, if Obj is a factor variable in R
+	/// return true, if Obj is a factor variable (R.class/R.levels attributes)
 	extern C_BOOL GDS_Is_RFactor(PdGDSObj Obj);
 
-/*
-	/// return 1 used in UNPROTECT and set levels in 'Val' if Obj is a factor in R; otherwise return 0
-	extern int GDS_R_Set_IfFactor(PdGDSObj Obj, SEXP Val);
-*/
-
-	/// return an R data object from a GDS object, allowing raw-type data
+	/// return a numpy array object from a GDS object
 	extern PyObject* GDS_Py_Array_Read(PdAbstractArray Obj, const C_Int32 *Start,
 		const C_Int32 *Length, const C_BOOL *const Selection[],
 		enum C_SVType SV);
-
-/*
-	/// apply user-defined function margin by margin
-	extern void GDS_R_Apply(int Num, PdAbstractArray ObjList[],
-		int Margins[], const C_BOOL *const * const Selection[],
-		void (*InitFunc)(SEXP Argument, C_Int32 Count,
-			PdArrayRead ReadObjList[], void *_Param),
-		void (*LoopFunc)(SEXP Argument, C_Int32 Idx, void *_Param),
-		void *Param, C_BOOL IncOrDec, C_UInt32 UseMode);
-	/// append R data
-	extern void GDS_R_Append(PdAbstractArray Obj, SEXP Val);
-	/// append R data with a range
-	extern void GDS_R_AppendEx(PdAbstractArray Obj, SEXP Val, size_t Start,
-		size_t Count);
-	/// return whether the elements in SetEL
-	extern void GDS_R_Is_Element(PdAbstractArray Obj, SEXP SetEL, C_BOOL Out[]);
-*/
 
 
 	// ==================================================================

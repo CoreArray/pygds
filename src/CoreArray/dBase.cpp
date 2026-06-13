@@ -8,7 +8,7 @@
 //
 // dBase.cpp: Fundamental classes for CoreArray library
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -84,14 +84,14 @@ ssize_t CdRef::Release()
 }
 
 
-void CoreArray::_INTERNAL::CdObject_LoadStruct(CdObject &Obj,
-	CdReader &Reader, TdVersion Version)
+void CoreArray::_INTERNAL::CdObject_LoadStruct(CdObject &Obj, CdReader &Reader,
+	TdVersion Version)
 {
 	Obj.LoadStruct(Reader, Version);
 }
 
-void CoreArray::_INTERNAL::CdObject_SaveStruct(CdObject &Obj,
-	CdWriter &Writer, bool IncludeName)
+void CoreArray::_INTERNAL::CdObject_SaveStruct(CdObject &Obj, CdWriter &Writer,
+	bool IncludeName)
 {
     Obj.SaveStruct(Writer, IncludeName);
 }
@@ -112,21 +112,12 @@ TdVersion CdObject::SaveVersion() { return dVersion(); }
 
 void CdObject::LoadStruct(CdReader &Reader, TdVersion Version)
 {
-	// call load function
-	try {
-		Loading(Reader, Version);
-
-	#ifdef COREARRAY_CODE_USING_LOG
-		Reader.Log().Add(CdLogRecord::logInfo, "==> %s [%s]",
-			LogValue().c_str(), dName());
-	#endif
-	} catch (exception &E) {
-		Reader.Log().Add(E.what());
-		throw;
-	} catch (const char *E) {
-		Reader.Log().Add(E);
-		throw;
-	}
+	// call the 'loading' function
+	Loading(Reader, Version);
+#ifdef COREARRAY_CODE_USING_LOG
+	Reader.Log().Add(CdLogRecord::LOG_INFO, "==> %s [%s]",
+		LogValue().c_str(), dName());
+#endif
 }
 
 void CdObject::SaveStruct(CdWriter &Writer, bool IncludeName)
@@ -233,6 +224,18 @@ static const char *VAR_LOGSIZE = "LOGSIZE";
 static const char *VAR_LOGDATA = "LOGDATA";
 
 CdLogRecord::CdLogRecord(): CdObjRef() {}
+
+const char *CdLogRecord::TdItem::TypeStr() const
+{
+	switch (Type)
+	{
+		case LOG_INFO:  return "INFO";
+		case LOG_ERROR: return "ERROR";
+		case LOG_WARN:  return "WARN";
+		case LOG_HINT:  return "HINT";
+	}
+	return "";
+}
 
 void CdLogRecord::Add(const char *const str, int vType)
 {
@@ -356,8 +359,13 @@ void CdMemory::SetPosition(const SIZE64 pos)
 // =====================================================================
 
 // Error messages in CdStream
-static const char *ERR_STREAM_READ = "Stream read error";
-static const char *ERR_STREAM_WRITE = "Stream write error";
+static const char *ERR_STREAM_READ =
+	"Stream Read Error, need %lld byte(s) but receive %lld";
+static const char *ERR_STREAM_WRITE =
+	"Stream Write Error";
+
+#define THROW_READ_ERROR(need_n, rec_n)    \
+	throw ErrStream(ERR_STREAM_READ, (C_Int64)need_n, (C_Int64)rec_n)
 
 CdStream::CdStream(): CdRef() {}
 
@@ -384,39 +392,42 @@ void CdStream::SetPosition(const SIZE64 pos)
 
 void CdStream::ReadData(void *Buffer, ssize_t Count)
 {
-	if ((Count > 0) && (Read(Buffer, Count) != Count))
-		throw ErrStream(ERR_STREAM_READ);
+	if (Count > 0)
+	{
+		ssize_t n = Read(Buffer, Count);
+		if (n != Count) THROW_READ_ERROR(Count, n);
+	}
 }
 
 C_UInt8 CdStream::R8b()
 {
 	C_UInt8 rv;
-	if (Read(&rv, sizeof(rv)) != (ssize_t)sizeof(rv))
-		throw ErrStream(ERR_STREAM_READ);
+	ssize_t n = Read(&rv, sizeof(rv));
+	if (n != (ssize_t)sizeof(rv)) THROW_READ_ERROR(sizeof(rv), n);
 	return rv;
 }
 
 C_UInt16 CdStream::R16b()
 {
 	C_UInt16 rv;
-	if (Read(&rv, sizeof(rv)) != (ssize_t)sizeof(rv))
-		throw ErrStream(ERR_STREAM_READ);
+	ssize_t n = Read(&rv, sizeof(rv));
+	if (n != (ssize_t)sizeof(rv)) THROW_READ_ERROR(sizeof(rv), n);
 	return rv;
 }
 
 C_UInt32 CdStream::R32b()
 {
 	C_UInt32 rv;
-	if (Read(&rv, sizeof(rv)) != (ssize_t)sizeof(rv))
-		throw ErrStream(ERR_STREAM_READ);
+	ssize_t n = Read(&rv, sizeof(rv));
+	if (n != (ssize_t)sizeof(rv)) THROW_READ_ERROR(sizeof(rv), n);
 	return rv;
 }
 
 C_UInt64 CdStream::R64b()
 {
 	C_UInt64 rv;
-	if (Read(&rv, sizeof(rv)) != (ssize_t)sizeof(rv))
-		throw ErrStream(ERR_STREAM_READ);
+	ssize_t n = Read(&rv, sizeof(rv));
+	if (n != (ssize_t)sizeof(rv)) THROW_READ_ERROR(sizeof(rv), n);
 	return rv;
 }
 
@@ -450,15 +461,9 @@ void CdStream::W64b(C_UInt64 val)
 		throw ErrStream(ERR_STREAM_WRITE);
 }
 
-CdStream& CdStream::operator= (const CdStream& m)
-{
-	return *this;
-}
-
-CdStream& CdStream::operator= (CdStream& m)
-{
-	return *this;
-}
+// NOTE: CdStream's copy constructor and copy-assignment operator are now
+// explicitly deleted (see dBase.h). The previous no-op definitions here
+// have been removed to match.
 
 void CdStream::CopyFrom(CdStream &Source, SIZE64 Pos, SIZE64 Count)
 {
@@ -528,10 +533,8 @@ CdBufStream::~CdBufStream()
 {
 	ClearPipe();
 	FlushWrite();
-	if (_Stream)
-		_Stream->Release();
-	if (_Buffer)
-		free((void*)_Buffer);
+	if (_Stream) { _Stream->Release(); _Stream = NULL; }
+	if (_Buffer) { free((void*)_Buffer); _Buffer = NULL; }
 }
 
 void CdBufStream::FlushBuffer()
@@ -565,24 +568,25 @@ void CdBufStream::FlushWrite()
 
 void CdBufStream::ReadData(void *Buf, ssize_t Count)
 {
+	ssize_t ori_cnt = Count;
 	if (Count > 0)
 	{
-		// Check in Range
+		// check in range
 		if ((_Position<_BufStart) || (_Position>=_BufEnd))
 		{
-			// Save to Buffer
+			// save to buffer
 			FlushBuffer();
-			// Make it in range
+			// make it in range
 			_BufStart = (_Position >> BufStreamAlign) << BufStreamAlign;
 			_Stream->SetPosition(_BufStart);
 			_BufEnd = _BufStart + _Stream->Read(_Buffer, _BufSize);
 		}
-
-		// Loop Copy
+		// loop copy data
 		C_UInt8 *p = (C_UInt8*)Buf;
 		do {
 			ssize_t L = _BufEnd - _Position;
-			if (L <= 0) throw ErrStream(ERR_STREAM_READ);
+			if (L <= 0)
+				THROW_READ_ERROR(ori_cnt, (ori_cnt-Count));
 			if (L > Count) L = Count;
 			memcpy(p, _Buffer + ssize_t(_Position - _BufStart), L);
 			_Position += L; p += L; Count -= L;
@@ -609,8 +613,7 @@ C_UInt8 CdBufStream::R8b()
 		_Stream->SetPosition(_BufStart);
 		_BufEnd = _BufStart + _Stream->Read(_Buffer, _BufSize);
 		// check
-		if (_Position >= _BufEnd)
-			throw ErrStream(ERR_STREAM_READ);
+		if (_Position >= _BufEnd) THROW_READ_ERROR(1, 0);
 	}
 
 	C_UInt8 rv = _Buffer[_Position - _BufStart];
@@ -747,9 +750,11 @@ void CdBufStream::SetBufSize(const ssize_t NewBufSize)
 	if ((_BufSize!=NewBufSize) && (NewBufSize>=(1 << BufStreamAlign)))
 	{
 		FlushWrite();
-		_BufSize = (NewBufSize >> BufStreamAlign) << BufStreamAlign;
-		_Buffer = (C_UInt8*)realloc((void*)_Buffer, _BufSize);
-		COREARRAY_ALLOCCHECK(_Buffer);
+		ssize_t newSize = (NewBufSize >> BufStreamAlign) << BufStreamAlign;
+		C_UInt8 *tmp = (C_UInt8*)realloc((void*)_Buffer, newSize);
+		COREARRAY_ALLOCCHECK(tmp);
+		_Buffer = tmp;
+		_BufSize = newSize;
     }
 }
 
@@ -774,11 +779,11 @@ void CdBufStream::ClearPipe()
 
 void CdBufStream::PushPipe(CdStreamPipe *APipe)
 {
-	_PipeItems.push_back(APipe);
 	FlushWrite();
+	_BufEnd = _BufStart = _Position = 0;
 	_Stream = APipe->InitPipe(this);
 	_Stream->AddRef();
-	_BufEnd = _BufStart = _Position = 0;
+	_PipeItems.push_back(APipe);
 }
 
 void CdBufStream::PopPipe()
@@ -786,12 +791,14 @@ void CdBufStream::PopPipe()
 	int L = _PipeItems.size();
 	if (L > 0)
 	{
-		{
-			auto_ptr<CdStreamPipe> FC(_PipeItems[L-1]);
-			_PipeItems.pop_back();
-			FlushBuffer();
-			_Stream = FC->FreePipe();
-		}
+	#ifdef COREARRAY_CPP_V11
+		unique_ptr<CdStreamPipe> FC(_PipeItems[L-1]); // C++11
+	#else
+		auto_ptr<CdStreamPipe> FC(_PipeItems[L-1]);
+	#endif
+		_PipeItems.pop_back();
+		FlushBuffer();
+		_Stream = FC->FreePipe();
 		_BufEnd = _BufStart = _Position = 0;
 	}
 }
@@ -860,6 +867,9 @@ void CdStreamIndex::_Hit(SIZE64 stream_pos)
 
 void CdStreamIndex::Set(C_Int64 index, C_Int64 &close_index, SIZE64 &stream_pos)
 {
+	static const char *ERR_SETINDEX =
+		"CdStreamIndex::Set(): index is out of range.";
+
 	if (!fHasInit) _Init();
 	if ((0 <= index) && (index < fCount))
 	{
@@ -879,5 +889,5 @@ void CdStreamIndex::Set(C_Int64 index, C_Int64 &close_index, SIZE64 &stream_pos)
 			fCurIndex = close_index;
 		}
 	} else
-		throw ErrObject("%s: index is out of range", __func__);
+		throw ErrObject(ERR_SETINDEX);
 }

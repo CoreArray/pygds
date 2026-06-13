@@ -27,7 +27,7 @@
 
 /**
  *	\file     dVLIntGDS.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
  *	\date     2016 - 2017
  *	\brief    Encoding variable-length integers in GDS
@@ -56,7 +56,7 @@ namespace CoreArray
 	{
 		typedef C_Int64 ElmType;
 
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_INTEGER;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_INTEGER;
 		static const unsigned BitOf = 64u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svCustomInt;
@@ -73,7 +73,7 @@ namespace CoreArray
 	{
 		typedef C_UInt64 ElmType;
 
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_INTEGER;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_INTEGER;
 		static const unsigned BitOf = 64u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svCustomInt;
@@ -136,6 +136,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdVL_Int *IT = static_cast<CdVL_Int*>(I.Handler);
 			IT->SetStreamPos(I.Ptr);
 			C_UInt8 Buf[COREARRAY_ALLOC_FUNC_BUFFER], *pBuf=Buf;
@@ -184,8 +185,10 @@ namespace CoreArray
 
 		/// read an array from CdAllocator with selection
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
-			const C_BOOL Sel[])
+			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr++;
 			CdVL_Int *IT = static_cast<CdVL_Int*>(I.Handler);
 			IT->SetStreamPos(I.Ptr);
 			C_UInt8 Buf[COREARRAY_ALLOC_FUNC_BUFFER], *pBuf=Buf;
@@ -202,7 +205,7 @@ namespace CoreArray
 					v |= C_UInt64(*s & 0x7F) << shift;
 					if (!(*s & 0x80))
 					{
-						if (*Sel++)
+						if (*sel++)
 						{
 							C_Int64 vv = !(v & 0x01) ? (v >> 1) : ~(v >> 1);
 							*p++ = VAL_CONV_FROM_I64(MEM_TYPE, vv);
@@ -239,6 +242,7 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
 			ssize_t n)
 		{
+			if (n <= 0) return p;
 			const ssize_t NBuf = COREARRAY_ALLOC_FUNC_BUFFER / 9;
 			CdVL_Int *IT = static_cast<CdVL_Int*>(I.Handler);
 			if (I.Ptr < IT->fTotalCount)
@@ -345,11 +349,11 @@ namespace CoreArray
 
 	protected:
 
-		C_Int64 fCurIndex;
-		SIZE64 fCurStreamPosition;
-		SIZE64 fTotalStreamSize;
 		TdGDSBlockID fIndexingID;       ///< indexing block ID
 		CdBlockStream *fIndexingStream; ///< the GDS stream for indexing
+		SIZE64 fTotalStreamSize;    ///< the total stream size
+		SIZE64 fCurStreamPosition;  ///< the current stream position
+		C_Int64 fCurIndex;  ///< the current array index
 
 		/// loading function for serialization
 		virtual void Loading(CdReader &Reader, TdVersion Version);
@@ -371,6 +375,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdVL_UInt *IT = static_cast<CdVL_UInt*>(I.Handler);
 			IT->SetStreamPos(I.Ptr);
 			C_UInt8 Buf[COREARRAY_ALLOC_FUNC_BUFFER], *pBuf=Buf;
@@ -416,8 +421,10 @@ namespace CoreArray
 
 		/// read an array from CdAllocator with selection
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
-			const C_BOOL Sel[])
+			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr++;
 			CdVL_UInt *IT = static_cast<CdVL_UInt*>(I.Handler);
 			IT->SetStreamPos(I.Ptr);
 			C_UInt8 Buf[COREARRAY_ALLOC_FUNC_BUFFER], *pBuf=Buf;
@@ -434,7 +441,7 @@ namespace CoreArray
 					v |= C_UInt64(*s & 0x7F) << shift;
 					if (!(*s & 0x80))
 					{
-						if (*Sel++)
+						if (*sel++)
 							*p++ = VAL_CONV_FROM_U64(MEM_TYPE, v);
 						v = shift = 0;
 						nn --;
@@ -466,11 +473,12 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
 			ssize_t n)
 		{
+			if (n <= 0) return p;
 			const ssize_t NBuf = COREARRAY_ALLOC_FUNC_BUFFER / 9;
 			CdVL_UInt *IT = static_cast<CdVL_UInt*>(I.Handler);
 			if (I.Ptr < IT->fTotalCount)
 			{
-				throw ErrArray("Insert a variable-length encoding integer wrong.");
+				throw ErrArray("Insert variable-length encoding integers wrong, only append integers.");
 			} else if (I.Ptr == IT->fTotalCount)
 			{
 				// append

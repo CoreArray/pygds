@@ -8,7 +8,7 @@
 //
 // dFile.h: Functions and classes for CoreArray Genomic Data Structure (GDS)
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dFile.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007-2020
  *	\brief    Functions and classes for CoreArray Genomic Data Structure (GDS)
  *	\details
 **/
@@ -68,13 +68,13 @@ namespace CoreArray
     	void Assign(CdObjAttr &Source);
 
 		/// add a new attribute
-		CdAny &Add(const UTF16String &Name);
+		CdAny &Add(const UTF8String &Name);
 		/// get the attribute index with a specified name
-		int IndexName(const UTF16String &Name);
+		int IndexName(const UTF8String &Name);
 		/// return whether there is an attribute with a specified name
-		bool HasName(const UTF16String &Name);
+		bool HasName(const UTF8String &Name);
 		/// delete the attribute with a specified name
-		void Delete(const UTF16String &Name);
+		void Delete(const UTF8String &Name);
 		/// delete the specified attribute
 		void Delete(int Index);
 		/// remove all attributes
@@ -89,17 +89,17 @@ namespace CoreArray
 		/// the owner a CdGDSObj object
 		COREARRAY_INLINE CdGDSObj &Owner() const { return fOwner; }
 
-		CdAny & operator[](const UTF16String &Name);
+		CdAny & operator[](const UTF8String &Name);
 		CdAny & operator[](int Index);
 
-		COREARRAY_INLINE UTF16String &Names(int Index)
+		COREARRAY_INLINE UTF8String &Names(int Index)
 			{ return fList[Index]->name; }
-		void SetName(const UTF16String &OldName, const UTF16String &NewName);
-		void SetName(int Index, const UTF16String &NewName);
+		void SetName(const UTF8String &OldName, const UTF8String &NewName);
+		void SetName(int Index, const UTF8String &NewName);
 
 	protected:
 		struct TdPair {
-			UTF16String name;
+			UTF8String name;
 			CdAny val;
 		};
 
@@ -110,8 +110,8 @@ namespace CoreArray
 		virtual void Saving(CdWriter &Writer);
 
 	private:
-		std::vector<TdPair*>::iterator _Find(const UTF16String &Name);
-        void _ValidateName(const UTF16String &name);
+		std::vector<TdPair*>::iterator _Find(const UTF8String &Name);
+        void _ValidateName(const UTF8String &name);
 	};
 
 
@@ -129,6 +129,22 @@ namespace CoreArray
 		/// destructor
 		virtual ~CdGDSObj();
 
+		// GDS nodes are heavyweight resource handles: they hold a back
+		// pointer to their folder, a ref-counted CdBlockStream, attribute
+		// storage, etc. A by-value copy would silently share all of that
+		// without adjusting the reference counts, producing use-after-free
+		// on destruction. Use Assign() for a deep copy or NewObject() to
+		// construct a new node.
+	#ifdef COREARRAY_CPP_V11
+		CdGDSObj(const CdGDSObj&) = delete;
+		CdGDSObj& operator=(const CdGDSObj&) = delete;
+	#else
+	private:
+		CdGDSObj(const CdGDSObj&);
+		CdGDSObj& operator=(const CdGDSObj&);
+	public:
+	#endif
+
 		/// create a new CdGDSObj object
 		virtual CdGDSObj *NewObject() = 0;
 
@@ -136,13 +152,11 @@ namespace CoreArray
 		virtual void Assign(CdGDSObj &Source, bool Full) = 0;
 
 		/// get the name of GDS node
-		virtual UTF16String Name() const;
+		virtual UTF8String Name() const;
 		/// get the full name with an absolute path
-		UTF16String FullName(const UTF16String &Delimiter) const;
-		/// get the full name with an absolute path
-		UTF16String FullName(const char *Delimiter = "/") const;
+		UTF8String FullName() const;
 		/// set a name to the GDS node
-		virtual void SetName(const UTF16String &NewName);
+		virtual void SetName(const UTF8String &NewName);
 
 		/// return true if a hidden flag is set
 		bool GetHidden() const;
@@ -227,6 +241,10 @@ namespace CoreArray
 		virtual const char *Coder() const = 0;
 		/// get the description of coder
 		virtual const char *Description() const = 0;
+		/// get a string of all coder options split by comma
+		virtual string CoderOptString() const = 0;
+		/// get a string of all ext options split by comma
+		virtual string ExtOptString() const = 0;
 		/// get whether or not Mode is self
 		virtual bool Equal(const char *Mode) const = 0;
 		/// get the coder information with parameters
@@ -267,6 +285,10 @@ namespace CoreArray
 		/// destructor
 		CdPipeMgrItem2();
 
+		/// get a list of options
+		virtual string CoderOptString() const;
+		/// get a string of all ext options split by comma
+		virtual string ExtOptString() const;
 		/// get whether or not Mode is self
 		virtual bool Equal(const char *Mode) const;
 		/// get the coder information with parameters
@@ -375,12 +397,14 @@ namespace CoreArray
 	class COREARRAY_DLL_DEFAULT CdGDSAbsFolder: public CdGDSObj
 	{
 	public:
-		virtual CdGDSObj *AddFolder(const UTF16String &Name) = 0;
-		virtual CdGDSObj *AddObj(const UTF16String &Name, CdGDSObj *val=NULL) = 0;
-		virtual CdGDSObj *InsertObj(int Index, const UTF16String &Name,
+		virtual CdGDSObj *AddFolder(const UTF8String &Name) = 0;
+		virtual CdGDSObj *AddObj(const UTF8String &Name, CdGDSObj *val=NULL) = 0;
+		virtual CdGDSObj *InsertObj(int Index, const UTF8String &Name,
 			CdGDSObj *val=NULL) = 0;
 		virtual void MoveTo(int Index, int NewPos) = 0;
 
+		virtual void UnloadObj(int Index) = 0;
+		virtual void UnloadObj(CdGDSObj *val) = 0;
 		virtual void DeleteObj(int Index, bool force=true) = 0;
 		virtual void DeleteObj(CdGDSObj *val, bool force=true) = 0;
 		virtual void ClearObj(bool force=true) = 0;
@@ -388,17 +412,17 @@ namespace CoreArray
 		/// return a GDS object, fails if not exist
 		virtual CdGDSObj *ObjItem(int Index) = 0;
 		/// return a GDS object, fails if not exist
-		virtual CdGDSObj *ObjItem(const UTF16String &Name) = 0;
+		virtual CdGDSObj *ObjItem(const UTF8String &Name) = 0;
 
 		/// return a GDS object, or NULL if fails
 		virtual CdGDSObj *ObjItemEx(int Index) = 0;
 		/// return a GDS object, or NULL if fails
-		virtual CdGDSObj *ObjItemEx(const UTF16String &Name) = 0;
+		virtual CdGDSObj *ObjItemEx(const UTF8String &Name) = 0;
 
 		/// return a GDS object with a path, fails if not exist
-		virtual CdGDSObj *Path(const UTF16String &FullName) = 0;
+		virtual CdGDSObj *Path(const UTF8String &FullName) = 0;
 		/// return a GDS object with a path, or NULL if fails
-		virtual CdGDSObj *PathEx(const UTF16String &FullName) = 0;
+		virtual CdGDSObj *PathEx(const UTF8String &FullName) = 0;
 
 		virtual int IndexObj(CdGDSObj *Obj) = 0;
 		virtual bool HasChild(CdGDSObj *Obj, bool Recursive) = 0;
@@ -429,24 +453,27 @@ namespace CoreArray
 		/// assignment from a folder recursively
 		void AssignFolder(CdGDSAbsFolder &Source);
 
-		virtual CdGDSObj *AddFolder(const UTF16String &Name);
-		virtual CdGDSObj *AddObj(const UTF16String &Name, CdGDSObj *val=NULL);
-		virtual CdGDSObj *InsertObj(int index, const UTF16String &Name,
+		virtual CdGDSObj *AddFolder(const UTF8String &Name);
+		virtual CdGDSObj *AddObj(const UTF8String &Name, CdGDSObj *val=NULL);
+		virtual CdGDSObj *InsertObj(int index, const UTF8String &Name,
 			CdGDSObj *val=NULL);
 		virtual void MoveTo(int Index, int NewPos);
+
+		virtual void UnloadObj(int Index);
+		virtual void UnloadObj(CdGDSObj *val);
 
 		virtual void DeleteObj(int Index, bool force=true);
 		virtual void DeleteObj(CdGDSObj *val, bool force=true);
 		virtual void ClearObj(bool force=true);
 
 		virtual CdGDSObj *ObjItem(int Index);
-		virtual CdGDSObj *ObjItem(const UTF16String &Name);
+		virtual CdGDSObj *ObjItem(const UTF8String &Name);
 
 		virtual CdGDSObj *ObjItemEx(int Index);
-		virtual CdGDSObj *ObjItemEx(const UTF16String &Name);
+		virtual CdGDSObj *ObjItemEx(const UTF8String &Name);
 
-		virtual CdGDSObj *Path(const UTF16String &FullName);
-		virtual CdGDSObj *PathEx(const UTF16String &FullName);
+		virtual CdGDSObj *Path(const UTF8String &FullName);
+		virtual CdGDSObj *PathEx(const UTF8String &FullName);
 
 		virtual int IndexObj(CdGDSObj *Obj);
 		virtual bool HasChild(CdGDSObj *Obj, bool Recursive);
@@ -455,15 +482,12 @@ namespace CoreArray
 		virtual int NodeCount();
 
 		CdGDSFolder &DirItem(int Index);
-		CdGDSFolder &DirItem(const UTF16String &Name);
+		CdGDSFolder &DirItem(const UTF8String &Name);
 
 		COREARRAY_INLINE CdGDSObj *operator[] (int Index)
 			{ return ObjItem(Index); }
-		COREARRAY_INLINE CdGDSObj *operator[] (const UTF16String &Name)
+		COREARRAY_INLINE CdGDSObj *operator[] (const UTF8String &Name)
 			{ return ObjItem(Name); }
-
-		static void SplitPath(const UTF16String &FullName, UTF16String &Path,
-        	UTF16String &Name);
 
 	protected:
 		struct TNode
@@ -486,7 +510,7 @@ namespace CoreArray
 			CdGDSObj *Obj;
 			TdGDSBlockID StreamID;  //<
 			C_UInt32 Flag;          //< type and attribute flags
-			UTF16String Name;
+			UTF8String Name;
 			SIZE64 _pos;
 
 			TNode();
@@ -506,8 +530,9 @@ namespace CoreArray
 		void _ClearFolder();
 
 	private:
-		bool _HasName(const UTF16String &Name);
-		TNode &_NameItem(const UTF16String &Name);
+		bool _HasName(const UTF8String &Name);
+		bool _ValidName(const UTF8String &Name);
+		TNode &_NameItem(const UTF8String &Name);
 		void _LoadItem(TNode &I);
 		void _UpdateAll();
 	};
@@ -536,24 +561,27 @@ namespace CoreArray
 
 		bool IsLoaded(bool Silent);
 
-		virtual CdGDSObj *AddFolder(const UTF16String &Name);
-		virtual CdGDSObj *AddObj(const UTF16String &Name, CdGDSObj *val=NULL);
-		virtual CdGDSObj *InsertObj(int index, const UTF16String &Name,
+		virtual CdGDSObj *AddFolder(const UTF8String &Name);
+		virtual CdGDSObj *AddObj(const UTF8String &Name, CdGDSObj *val=NULL);
+		virtual CdGDSObj *InsertObj(int index, const UTF8String &Name,
 			CdGDSObj *val=NULL);
 		virtual void MoveTo(int Index, int NewPos);
+
+		virtual void UnloadObj(int Index);
+		virtual void UnloadObj(CdGDSObj *val);
 
 		virtual void DeleteObj(int Index, bool force=true);
 		virtual void DeleteObj(CdGDSObj *val, bool force=true);
 		virtual void ClearObj(bool force=true);
 
 		virtual CdGDSObj *ObjItem(int Index);
-		virtual CdGDSObj *ObjItem(const UTF16String &Name);
+		virtual CdGDSObj *ObjItem(const UTF8String &Name);
 
 		virtual CdGDSObj *ObjItemEx(int Index);
-		virtual CdGDSObj *ObjItemEx(const UTF16String &Name);
+		virtual CdGDSObj *ObjItemEx(const UTF8String &Name);
 
-		virtual CdGDSObj *Path(const UTF16String &FullName);
-		virtual CdGDSObj *PathEx(const UTF16String &FullName);
+		virtual CdGDSObj *Path(const UTF8String &FullName);
+		virtual CdGDSObj *PathEx(const UTF8String &FullName);
 
 		virtual int IndexObj(CdGDSObj *Obj);
 		virtual bool HasChild(CdGDSObj *Obj, bool Recursive);
@@ -639,8 +667,8 @@ namespace CoreArray
 		/// constructor
 		CdGDSRoot();
 
-		virtual UTF16String Name() const;
-		virtual void SetName(const UTF16String &NewName);
+		virtual UTF8String Name() const;
+		virtual void SetName(const UTF8String &NewName);
 
 	protected:
 		CdGDSVirtualFolder *fVFolder;
@@ -677,6 +705,7 @@ namespace CoreArray
 	public:
 		friend class CdGDSVirtualFolder;
 
+		/// opening mode flags
 		enum TdOpenMode { dmCreate, dmOpenRead, dmOpenReadWrite };
 
 		/// constructor
@@ -688,21 +717,23 @@ namespace CoreArray
 		/// destructor
 		virtual ~CdGDSFile();
 
-		void LoadFile(const UTF8String &fn, bool ReadOnly=true);
-		void LoadFile(const char *fn, bool ReadOnly=true);
-		void LoadFileFork(const char *fn, bool ReadOnly=true);
+		void LoadFile(const UTF8String &fn, bool ReadOnly=true, bool AllowError=false);
+		void LoadFile(const char *fn, bool ReadOnly=true, bool AllowError=false);
+		void LoadFileFork(const char *fn, bool ReadOnly=true, bool AllowError=false);
+
+		void LoadStream(CdStream* Stream, bool ReadOnly, bool AllowError);
 
 		void SaveAsFile(const UTF8String &fn);
 		void SaveAsFile(const char *fn);
 
-		void DuplicateFile(const UTF8String &fn, bool deep);
-		void DuplicateFile(const char *fn, bool deep);
+		void DuplicateFile(const UTF8String &fn, bool deep=false, bool sort=false);
+		void DuplicateFile(const char *fn, bool deep=false, bool sort=false);
 
 		void SyncFile();
 		void CloseFile();
 
 		/// Clean up all fragments
-		void TidyUp(bool deep);
+		void TidyUp(bool deep=false, bool sort=false);
 
 		bool Modified();
 
@@ -729,8 +760,6 @@ namespace CoreArray
 		CdGDSRoot fRoot;
 		bool fReadOnly;
 		UTF8String fFileName;
-
-		void LoadStream(CdStream* Stream, bool ReadOnly = true);
 		void SaveStream(CdStream* Stream);
 
 	private:

@@ -2,7 +2,7 @@
 //
 // PyCoreArray.cpp: Export the C routines of CoreArray library
 //
-// Copyright (C) 2017    Xiuwen Zheng
+// Copyright (C) 2017-2026    Xiuwen Zheng
 //
 // pygds is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License Version 3 as
@@ -147,16 +147,16 @@ COREARRAY_DLL_EXPORT PdGDSFolder GDS_ID2FileRoot(int file_id)
 
 COREARRAY_DLL_EXPORT C_BOOL GDS_Is_RLogical(PdGDSObj Obj)
 {
-	return Obj->Attribute().HasName(ASC16("R.logical"));
+	return Obj->Attribute().HasName(UTF8Text("R.logical"));
 }
 
 
 COREARRAY_DLL_EXPORT C_BOOL GDS_Is_RFactor(PdGDSObj Obj)
 {
-	if (Obj->Attribute().HasName(ASC16("R.class")) &&
-		Obj->Attribute().HasName(ASC16("R.levels")))
+	if (Obj->Attribute().HasName(UTF8Text("R.class")) &&
+		Obj->Attribute().HasName(UTF8Text("R.levels")))
 	{
-		return (Obj->Attribute()[ASC16("R.class")].GetStr8() == "factor");
+		return (Obj->Attribute()[UTF8Text("R.class")].GetStr8() == "factor");
 	} else
 		return false;
 }
@@ -252,7 +252,7 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 		{
 			// it is an R factor
 			int nlevels = 0;
-			CdAny &attr = Obj->Attribute()[ASC16("R.levels")];
+			CdAny &attr = Obj->Attribute()[UTF8Text("R.levels")];
 			if (attr.IsString())
 				nlevels = 1;
 			else if (attr.IsArray())
@@ -275,14 +275,14 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 				}
 			}
 			// load integers
-			const size_t n = PyArray_SIZE(rv_ans);
+			const size_t n = PyArray_SIZE((PyArrayObject*)rv_ans);
 			vector<C_Int32> intbuf(n);
 			if (!Selection)
 				Obj->ReadData(Start, Length, &intbuf[0], svInt32);
 			else
 				Obj->ReadDataEx(Start, Length, Selection, &intbuf[0], svInt32);
 			// match factor strings
-			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
+			PyObject** p = (PyObject**)PyArray_DATA((PyArrayObject*)rv_ans);
 			for (size_t i=0; i < n; i++)
 			{
 				int v = intbuf[i];
@@ -292,30 +292,30 @@ COREARRAY_DLL_EXPORT PyObject* GDS_Py_Array_Read(PdAbstractArray Obj,
 				else
 					x = Py_None;
 				Py_INCREF(x);
-				PyArray_SETITEM(rv_ans, p++, x);
+				PyArray_SETITEM((PyArrayObject*)rv_ans, (char*)p++, x);
 			}
 			Py_DECREF(Levels);
 			
 		} else if (COREARRAY_SV_NUMERIC(SV))
 		{
-			void *datptr = PyArray_DATA(rv_ans);
+			void *datptr = PyArray_DATA((PyArrayObject*)rv_ans);
 			if (!Selection)
 				Obj->ReadData(Start, Length, datptr, SV);
 			else
 				Obj->ReadDataEx(Start, Length, Selection, datptr, SV);
 		} else if (SV == svStrUTF8)
 		{
-			const size_t n = PyArray_SIZE(rv_ans);
+			const size_t n = PyArray_SIZE((PyArrayObject*)rv_ans);
 			vector<UTF8String> strbuf(n);
 			if (!Selection)
 				Obj->ReadData(Start, Length, &strbuf[0], SV);
 			else
 				Obj->ReadDataEx(Start, Length, Selection, &strbuf[0], SV);
-			PyObject** p = (PyObject**)PyArray_DATA(rv_ans);
+			PyObject** p = (PyObject**)PyArray_DATA((PyArrayObject*)rv_ans);
 			for (size_t i=0; i < strbuf.size(); i++)
 			{
 				UTF8String &s = strbuf[i];
-				PyArray_SETITEM(rv_ans, p++, PYSTR_SET2(&s[0], s.size()));
+				PyArray_SETITEM((PyArrayObject*)rv_ans, (char*)p++, PYSTR_SET2(&s[0], s.size()));
 			}
 		}
 
@@ -541,9 +541,9 @@ COREARRAY_DLL_EXPORT PdGDSObj GDS_Node_Path(PdGDSFolder Node,
 	const char *Path, C_BOOL MustExist)
 {
 	if (MustExist)
-		return Node->Path(UTF16Text(Path));
+		return Node->Path(UTF8Text(Path));
 	else
-		return Node->PathEx(UTF16Text(Path));
+		return Node->PathEx(UTF8Text(Path));
 }
 
 
@@ -558,7 +558,7 @@ COREARRAY_DLL_EXPORT int GDS_Attr_Count(PdGDSObj Node)
 
 COREARRAY_DLL_EXPORT int GDS_Attr_Name2Index(PdGDSObj Node, const char *Name)
 {
-	return Node->Attribute().IndexName(ASC16(Name));
+	return Node->Attribute().IndexName(UTF8Text(Name));
 }
 
 
@@ -785,13 +785,49 @@ C_BOOL *numpy_get_bool(PyObject *obj, size_t &num)
 {
 	if (PyArray_Check(obj))
 	{
-		if (PyArray_TYPE(obj) == NPY_BOOL)
+		if (PyArray_TYPE((PyArrayObject*)obj) == NPY_BOOL)
 		{
-			num = PyArray_SIZE(obj);
-			return (C_BOOL*)PyArray_DATA(obj);
+			num = PyArray_SIZE((PyArrayObject*)obj);
+			return (C_BOOL*)PyArray_DATA((PyArrayObject*)obj);
 		}
 	}
 	return NULL;
+}
+
+
+/// Get a contiguous data pointer, element count and the matching CoreArray
+/// storage type from a numpy array. Returns the data pointer (or NULL if the
+/// dtype is unsupported / 'obj' is not a numpy array). The caller (Python
+/// layer) is responsible for passing a C-contiguous array.
+COREARRAY_DLL_EXPORT void *numpy_get_data(PyObject *obj, size_t &num, int &sv_out)
+{
+	num = 0; sv_out = -1;  // svCustom is 0; use -1 to mean "unsupported"
+	if (!PyArray_Check(obj))
+		return NULL;
+	PyArrayObject *arr = (PyArrayObject*)obj;
+	if (!PyArray_ISCARRAY_RO(arr))
+		return NULL;
+
+	C_SVType sv;
+	switch (PyArray_TYPE(arr))
+	{
+		case NPY_BOOL:    sv = svInt8;    break;
+		case NPY_INT8:    sv = svInt8;    break;
+		case NPY_UINT8:   sv = svUInt8;   break;
+		case NPY_INT16:   sv = svInt16;   break;
+		case NPY_UINT16:  sv = svUInt16;  break;
+		case NPY_INT32:   sv = svInt32;   break;
+		case NPY_UINT32:  sv = svUInt32;  break;
+		case NPY_INT64:   sv = svInt64;   break;
+		case NPY_UINT64:  sv = svUInt64;  break;
+		case NPY_FLOAT32: sv = svFloat32; break;
+		case NPY_FLOAT64: sv = svFloat64; break;
+		default:
+			return NULL;
+	}
+	num = PyArray_SIZE(arr);
+	sv_out = (int)sv;
+	return PyArray_DATA(arr);
 }
 
 
@@ -863,24 +899,6 @@ static TFUNC c_api[] = {
 };
 
 
-/*
-	// R objects
-	(TFUNC)GDS_R_SEXP2File);
-	(TFUNC)GDS_R_SEXP2FileRoot);
-	(TFUNC)GDS_R_SEXP2Obj);
-	(TFUNC)GDS_R_Obj2SEXP);
-	(TFUNC)GDS_R_Obj_SEXP2SEXP);
-	(TFUNC)GDS_Is_RLogical);
-	(TFUNC)GDS_Is_RFactor);
-	(TFUNC)GDS_R_Set_IfFactor);
-	(TFUNC)GDS_R_Array_Read);
-	(TFUNC)GDS_R_Apply);
-	(TFUNC)GDS_R_Append);
-	(TFUNC)GDS_R_AppendEx);
-	(TFUNC)GDS_R_Is_Element);
-*/
-
-
 
 // import numpy functions
 #if (PY_MAJOR_VERSION >= 3)
@@ -896,7 +914,7 @@ COREARRAY_DLL_LOCAL bool pygds_init()
 	RegisterClass();
 	// import numpy
 #if (PY_MAJOR_VERSION >= 3)
-	if (_init_() == NUMPY_IMPORT_ARRAY_RETVAL) return false;
+	if (_init_() == NULL) return false;
 #else
 	_init_();
 #endif

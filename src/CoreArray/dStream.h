@@ -8,7 +8,7 @@
 //
 // dStream.h: Stream classes and functions
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2020    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dStream.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2020
  *	\brief    Stream classes and functions
  *	\details
 **/
@@ -102,13 +102,13 @@ namespace CoreArray
 	{
 	public:
 		enum TdOpenMode {
-			fmCreate = 0,
-			fmOpenRead,
-			fmOpenWrite,
-			fmOpenReadWrite
+			fmCreate        = 0,
+			fmOpenRead      = 1,
+			fmOpenWrite     = 2,
+			fmOpenReadWrite = 3
 		};
 
-		CdFileStream(const char * const AFileName, TdOpenMode mode);
+		CdFileStream(const char *const AFileName, TdOpenMode mode);
 		virtual ~CdFileStream();
 
 		COREARRAY_INLINE const string& FileName() const { return fFileName; }
@@ -119,7 +119,7 @@ namespace CoreArray
 		TdOpenMode fMode;
 
 		CdFileStream(): CdHandleStream() {}
-		void Init(const char * const AFileName, TdOpenMode Mode);
+		void Init(const char *const AFileName, TdOpenMode Mode);
 	};
 
 
@@ -127,7 +127,7 @@ namespace CoreArray
 	class COREARRAY_DLL_DEFAULT CdForkFileStream: public CdFileStream
 	{
 	public:
-		CdForkFileStream(const char * const AFileName, TdOpenMode Mode);
+		CdForkFileStream(const char *const AFileName, TdOpenMode Mode);
 
 		/// Read block of data, and return number of read in bytes
 		virtual ssize_t Read(void *Buffer, ssize_t Count);
@@ -162,7 +162,7 @@ namespace CoreArray
 	class COREARRAY_DLL_DEFAULT CdMemoryStream: public CdStream
 	{
 	public:
-		CdMemoryStream(size_t Size = 0);
+		CdMemoryStream(size_t Size=0);
 		virtual ~CdMemoryStream();
 
 		virtual ssize_t Read(void *Buffer, ssize_t Count);
@@ -177,6 +177,45 @@ namespace CoreArray
 	protected:
 		void *fBuffer;
 		ssize_t fCapacity, fPosition;
+	};
+
+
+	// =====================================================================
+	// Callback stream (for external backends like cloud storage)
+	// =====================================================================
+
+	/// Function pointer types for callback stream
+	typedef ssize_t (*TdCbStreamRead)(void *user_data, void *buffer, ssize_t count);
+	typedef ssize_t (*TdCbStreamWrite)(void *user_data, const void *buffer, ssize_t count);
+	typedef C_Int64 (*TdCbStreamSeek)(void *user_data, C_Int64 offset, int origin);
+	typedef C_Int64 (*TdCbStreamGetSize)(void *user_data);
+	typedef void    (*TdCbStreamSetSize)(void *user_data, C_Int64 new_size);
+	typedef void    (*TdCbStreamClose)(void *user_data);
+
+	/// Stream backed by external callback functions
+	class COREARRAY_DLL_DEFAULT CdCallbackStream: public CdStream
+	{
+	public:
+		CdCallbackStream(TdCbStreamRead read_fn, TdCbStreamWrite write_fn,
+			TdCbStreamSeek seek_fn, TdCbStreamGetSize getsize_fn,
+			TdCbStreamSetSize setsize_fn, TdCbStreamClose close_fn,
+			void *user_data);
+		virtual ~CdCallbackStream();
+
+		virtual ssize_t Read(void *Buffer, ssize_t Count);
+		virtual ssize_t Write(const void *Buffer, ssize_t Count);
+		virtual SIZE64 Seek(SIZE64 Offset, TdSysSeekOrg Origin);
+		virtual SIZE64 GetSize();
+		virtual void SetSize(SIZE64 NewSize);
+
+	protected:
+		TdCbStreamRead fReadFn;
+		TdCbStreamWrite fWriteFn;
+		TdCbStreamSeek fSeekFn;
+		TdCbStreamGetSize fGetSizeFn;
+		TdCbStreamSetSize fSetSizeFn;
+		TdCbStreamClose fCloseFn;
+		void *fUserData;
 	};
 
 
@@ -247,11 +286,14 @@ namespace CoreArray
 		/// compression level
 		enum TLevel
 		{
-			clUnknown = -1,   //< unknown or unspecified compression level
-			clMin     =  0,   //< minimal data compression, but possibly allow checksum procedure
-			clFast    =  1,   //< fast mode when compressing
-			clDefault =  2,   //< default mode with high compression ratio
-			clMax     =  3,   //< maximize the compression ratio
+			clUnknown  = -1,   //< unknown or unspecified compression level
+			clMin      =  0,   //< minimal data compression, but possibly allow checksum procedure
+			clFast     =  1,   //< fast mode when compressing
+			clDefault  =  2,   //< default mode with high compression ratio
+			clMax      =  3,   //< maximize the compression ratio
+			clUltra    =  4,   //< ultra-mode
+			clUltraMax =  5,   //< maximize the ultra mode
+			clCustom   =  6    //< use a customized level
 		};
 
 		CdRecodeStream(CdStream &vStream);
@@ -781,6 +823,7 @@ namespace CoreArray
 	{
 	public:
 		CdXZEncoder(CdStream &Dest, TLevel Level);
+		CdXZEncoder(CdStream &Dest, int DictKB);
 		virtual ~CdXZEncoder();
 
 		virtual ssize_t Read(void *Buffer, ssize_t Count);
@@ -795,8 +838,8 @@ namespace CoreArray
 
 	protected:
 		bool fHaveClosed;
-
 		void SyncFinish();
+		void InitXZStream();
 	};
 
 
@@ -914,6 +957,7 @@ namespace CoreArray
 			bool Head;
 
 			TBlockInfo();
+			TBlockInfo(bool head, SIZE64 bs, SIZE64 ss, SIZE64 sn);
 			SIZE64 AbsStart() const;  /// the start position with overhead
 			void SetSize(CdStream &Stream, SIZE64 _Size);
 			void SetNext(CdStream &Stream, SIZE64 _Next);
@@ -969,7 +1013,8 @@ namespace CoreArray
 		CdBlockCollection(const SIZE64 vCodeStart=0);
 		virtual ~CdBlockCollection();
 
-		void LoadStream(CdStream *vStream, bool vReadOnly);
+		void LoadStream(CdStream *vStream, bool vReadOnly, bool vAllowError,
+			CdLogRecord *Log);
 		void WriteStream(CdStream *vStream);
 		void Clear();
 

@@ -8,7 +8,7 @@
 //
 // dBase.h: Fundamental classes for CoreArray library
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dBase.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2020
  *	\brief    Basic classes for CoreArray library
  *	\details
 **/
@@ -99,6 +99,22 @@ namespace CoreArray
 		/// destructor
 		virtual ~CdRef();
 
+		/// CdRef objects own a reference count and (through derived types)
+		/// heap state. A compiler-generated copy would duplicate the pointer
+		/// payload without adjusting the counter, leading to double-free or
+		/// use-after-free. Use AddRef()/Release() to share ownership instead.
+	#ifdef COREARRAY_CPP_V11
+		CdRef(const CdRef&) = delete;
+		CdRef& operator=(const CdRef&) = delete;
+	private:
+	#else
+	private:
+		CdRef(const CdRef&);
+		CdRef& operator=(const CdRef&);
+	public:
+	#endif
+
+	public:
 		/// increase the reference count, and return the count after increment
 		/** indicating this object is being used.  **/
 		ssize_t AddRef();
@@ -464,11 +480,11 @@ namespace CoreArray
 	class COREARRAY_DLL_DEFAULT CdLogRecord: public CdObjRef
 	{
 	public:
-		static const int logCustom  =  -1;  ///< user-customized
-		static const int logInfo    =   0;  ///< information
-		static const int logError   =   1;  ///< error
-		static const int logWarn    =   2;  ///< warning
-		static const int logHint    =   3;  ///< hint
+		static const int LOG_CUSTOM  =  -1;  ///< user-customized
+		static const int LOG_INFO    =   0;  ///< information
+		static const int LOG_ERROR   =   1;  ///< error
+		static const int LOG_WARN    =   2;  ///< warning
+		static const int LOG_HINT    =   3;  ///< hint
 
 		/// constructor
 		CdLogRecord();
@@ -477,14 +493,15 @@ namespace CoreArray
 		struct TdItem
 		{
 			UTF8String Msg;  ///< the message
-			C_Int32 Type;      ///< the type of message
-			TdItem() { Type = logCustom; }
+			C_Int32 Type;    ///< the type of message
+			TdItem() { Type = LOG_CUSTOM; }
+			const char *TypeStr() const;  ///< return a string for Type
 		};
 
 		/// add a message
-		void Add(const char *const str, C_Int32 vType=logError);
+		void Add(const char *const str, C_Int32 vType=LOG_ERROR);
 		/// add a message
-		void Add(std::string &str, C_Int32 vType=logError);
+		void Add(std::string &str, C_Int32 vType=LOG_ERROR);
 		/// add a message
 		void Add(C_Int32 vType, const char *fmt, ...);
 
@@ -607,9 +624,20 @@ namespace CoreArray
 		/// copy from a CdBufStream object
 		void CopyFromBuf(CdBufStream &Source, SIZE64 Pos, SIZE64 Count);
 
+		// Streams own an OS-level resource (file handle, socket, decoder
+		// state, ...). Copying one silently shares that resource without
+		// telling the owner, producing double-close / double-free on
+		// destruction. Disable copy construction as well.
+	#ifdef COREARRAY_CPP_V11
+		CdStream(const CdStream&) = delete;
+		CdStream& operator= (const CdStream&) = delete;
 	private:
+	#else
+	private:
+		CdStream(const CdStream&);
 		CdStream& operator= (const CdStream& m);
 		CdStream& operator= (CdStream& m);
+	#endif
 	};
 
 
@@ -712,6 +740,20 @@ namespace CoreArray
 
 		TdOnNotify<CdBufStream> OnFlush;
 
+		// CdBufStream owns a malloc()'d buffer, a pipe stack, and a ref to
+		// its underlying CdStream. None of that is meaningful to share by
+		// value: copying would duplicate the pointer, then both copies would
+		// free() the same buffer and Release() the same stream.
+	#ifdef COREARRAY_CPP_V11
+		CdBufStream(const CdBufStream&) = delete;
+		CdBufStream& operator=(const CdBufStream&) = delete;
+	#else
+	private:
+		CdBufStream(const CdBufStream&);
+		CdBufStream& operator=(const CdBufStream&);
+	public:
+	#endif
+
 	protected:
 		CdStream *_Stream, *_BaseStream;
 		ssize_t _BufSize;
@@ -728,6 +770,9 @@ namespace CoreArray
 	template<typename CLASS>
 		class COREARRAY_DLL_DEFAULT CdStreamPipe2: public CdStreamPipe
 	{
+	public:
+		CdStreamPipe2(): CdStreamPipe() { fStream = NULL; fPStream = NULL; }
+
 	protected:
 		virtual CdStream *InitPipe(CdBufStream *BufStream)
 		{
@@ -737,7 +782,7 @@ namespace CoreArray
 		}
 		virtual CdStream *FreePipe()
 		{
-			if (fPStream) fPStream->Release();
+			if (fPStream) { fPStream->Release(); fPStream = NULL; }
 			return fStream;
 		}
 

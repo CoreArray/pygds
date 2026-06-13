@@ -8,7 +8,7 @@
 //
 // dSerial.cpp: Serialization between class objects and stream data
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2020    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -100,6 +100,10 @@ static const char *ERR_INV_CLASS_NAME =
 static const char *ERR_INV_VERSION =
 	"Data version (v%d.%d) of '%s' is higher than what the object supports.";
 
+#ifdef COREARRAY_CODE_DEBUG
+static const char *ERR_NOT_NULL = "CdSerialization(): %s should not be NULL.";
+#endif
+
 
 // =====================================================================
 // Serialization -- Root class
@@ -111,7 +115,7 @@ CdSerialization::CdSerialization(CdBufStream *vBufStream, CdLogRecord *vLog,
 	// buffer object
 #ifdef COREARRAY_CODE_DEBUG
 	if (vBufStream == NULL)
-		throw ErrDEBUG("CdSerial::CdSerial(), vBufStream should not be NULL.");
+		throw ErrDEBUG(ERR_NOT_NULL, "vBufStream");
 #endif
 	fStorage.Stream = vBufStream;
 	if (vBufStream != NULL) vBufStream->AddRef();
@@ -132,7 +136,7 @@ CdSerialization::CdSerialization(CdStream *vStream, CdLogRecord *vLog,
 	// buffer object
 #ifdef COREARRAY_CODE_DEBUG
 	if (vStream == NULL)
-		throw ErrDEBUG("CdSerial::CdSerial(), vStream should not be NULL.");
+		throw ErrDEBUG(ERR_NOT_NULL, "vStream");
 #endif
 	fStorage.Stream = new CdBufStream(vStream);
 	fStorage.Stream->AddRef();
@@ -743,10 +747,7 @@ void CdReader::_InitNameSpace()
 
 		// if name exists, add a warning
 		if (Cur.Name2Variable(Name.c_str()) != NULL)
-		{
-			Log().Add(CdLogRecord::logWarn,
-				ERR_DUP_VAR_NAME, Name.c_str());
-		}
+			Log().Add(CdLogRecord::LOG_WARN, ERR_DUP_VAR_NAME, Name.c_str());
 
 		switch (TypeID)
 		{
@@ -1220,8 +1221,7 @@ void CdObjClassMgr::Clear()
 	fClassList.clear();
 }
 
-CdObjClassMgr::TdOnObjCreate CdObjClassMgr::NameToClass(
-	const char * ClassName)
+CdObjClassMgr::TdOnObjCreate CdObjClassMgr::NameToClass(const char *ClassName)
 {
 	map<const char *, TClassStruct, TStrCmp>::const_iterator it;
 	it = fClassMap.find(ClassName);
@@ -1231,8 +1231,8 @@ CdObjClassMgr::TdOnObjCreate CdObjClassMgr::NameToClass(
 		return NULL;
 }
 
-CdObjRef* CdObjClassMgr::ToObj(CdReader &Reader, TdInit OnInit,
-	void *Data, bool Silent)
+CdObjRef* CdObjClassMgr::ToObj(CdReader &Reader, TdInit OnInit, void *Data,
+	bool Silent)
 {
 	TdOnObjCreate OnCreate;
 	TdVersion Version;
@@ -1241,30 +1241,31 @@ CdObjRef* CdObjClassMgr::ToObj(CdReader &Reader, TdInit OnInit,
 
 	Reader._BeginNameSpace();
 	try {
+		// get version number
 		Version = Reader.Storage().R8b();
 		Version |= ((TdVersion)Reader.Storage().R8b()) << 8;
+		// get class name
 		Name = Reader.ReadClassName();
 		OnCreate = NameToClass(Name.c_str());
-
 		if (OnCreate)
 		{
-			Obj = OnCreate();
-			if (OnInit) OnInit(*this, Obj, Data);
+			Obj = (*OnCreate)();
+			if (OnInit) (*OnInit)(*this, Obj, Data);
 			// check version number
 			if (Version > Obj->dVersion())
 			{
 				throw ErrSerial(ERR_INV_VERSION, Version >> 8, Version & 0xFF,
 					Name.c_str());
 			}
-			// load
+			// initialize and load object
 			Reader._InitNameSpace();
 			_INTERNAL::CdObject_LoadStruct(*Obj, Reader, Version);
 		} else
 			throw ErrSerial(ERR_INV_CLASS_NAME, Name.c_str());
+
 	} catch (exception &E) {
 		Reader.Log().Add(E.what());
-		delete Obj;
-		Obj = NULL;
+		delete Obj; Obj = NULL;
 		if (!Silent)
 		{
 			Reader.EndStruct();

@@ -8,7 +8,7 @@
 //
 // dBitGDS_Bit24.h: Bit operators and classes of GDS format for Bit24/SBit24
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2020    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dBitGDS_Bit24.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2020
  *	\brief    Bit operators and classes of GDS format for Bit24/SBit24
  *	\details
 **/
@@ -48,6 +48,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *Buffer, ssize_t n)
 		{
+			if (n <= 0) return Buffer;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_UInt8 Stack[MEMORY_BUFFER_SIZE];
 			C_UInt32 IntBit[NMAX];
@@ -77,6 +78,8 @@ namespace CoreArray
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *Buffer, ssize_t n,
 			const C_BOOL sel[])
 		{
+			if (n <= 0) return Buffer;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += 3;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_UInt8 Stack[MEMORY_BUFFER_SIZE];
 			C_UInt32 IntBit[NMAX];
@@ -108,6 +111,7 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *Buffer,
 			ssize_t n)
 		{
+			if (n <= 0) return Buffer;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_UInt32 IntBit[NMAX];
 			I.Allocator->SetPosition(I.Ptr);
@@ -143,6 +147,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *Buffer, ssize_t n)
 		{
+			if (n <= 0) return Buffer;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_UInt8 Stack[MEMORY_BUFFER_SIZE];
 			C_Int32 IntBit[NMAX];
@@ -173,6 +178,8 @@ namespace CoreArray
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *Buffer, ssize_t n,
 			const C_BOOL sel[])
 		{
+			if (n <= 0) return Buffer;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += 3;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_UInt8 Stack[MEMORY_BUFFER_SIZE];
 			C_Int32 IntBit[NMAX];
@@ -205,6 +212,7 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *Buffer,
 			ssize_t n)
 		{
+			if (n <= 0) return Buffer;
 			const ssize_t NMAX = MEMORY_BUFFER_SIZE / sizeof(C_UInt32);
 			C_Int32 IntBit[NMAX];
 			I.Allocator->SetPosition(I.Ptr);

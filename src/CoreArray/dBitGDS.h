@@ -8,7 +8,7 @@
 //
 // dBitGDS.h: Bit operators and classes of GDS format
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2025    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dBitGDS.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2025
  *	\brief    Bit operators and classes of GDS format
  *	\details
 **/
@@ -42,13 +42,17 @@
 #include <typeinfo>
 
 #ifdef COREARRAY_SIMD_SSE
-#include <xmmintrin.h>
+#   include <xmmintrin.h>
 #endif
 #ifdef COREARRAY_SIMD_SSE2
-#include <emmintrin.h>
+#   include <emmintrin.h>
 #endif
 #ifdef COREARRAY_SIMD_AVX
-#include <immintrin.h>
+#   include <immintrin.h>
+#endif
+
+#if defined(COREARRAY_SIMD_SSE4_2) || defined(COREARRAY_POPCNT)
+#   include <nmmintrin.h>  // COREARRAY_SIMD_SSE4_2, for POPCNT
 #endif
 
 
@@ -94,8 +98,9 @@ namespace CoreArray
 	/// bit array { 0xF0, 0x0F }
 	extern const C_UInt8 CoreArray_MaskBit4ArrayNot[];
 
-
+	/// bit test for negative integer
 	C_Int32 BitSet_IfSigned(C_Int32 val, unsigned nbit);
+
 
 
 	// =====================================================================
@@ -288,12 +293,11 @@ namespace CoreArray
 						}
 					}
 
-					C_Int64 tmp=0, num_bit=0;
-					for (C_Int64 n=0; n < Count; n++)
+					C_Int64 num_bit = Count * N_BIT;
+					for (C_Int64 n=Count; n > 0; n--)
 					{
-						tmp += N_BIT;
-						u1 = (u1 + N_BIT) & 0x07;
-						if (u1 == 0) num_bit = tmp;
+						if ((num_bit & 0x07) == 0) break;
+						num_bit -= N_BIT;
 					}
 
 					if (num_bit > 0)
@@ -372,7 +376,7 @@ namespace CoreArray
 		}
 
 		/// Return a string specifying the class name in stream
-		virtual char const* dName() { return SBitStreamNames[nbit-1]; }
+		virtual char const* dName() { return SBitStreamNames[nbit]; }
 		/// Return a string specifying the class name
 		virtual char const* dTraitName() { return dName()+1; }
 	};
@@ -396,7 +400,7 @@ namespace CoreArray
 		}
 
 		/// Return a string specifying the class name in stream
-		virtual char const* dName() { return BitStreamNames[nbit-1]; }
+		virtual char const* dName() { return BitStreamNames[nbit]; }
 		/// Return a string specifying the class name
 		virtual char const* dTraitName() { return dName()+1; }
 	};
@@ -410,7 +414,8 @@ namespace CoreArray
 	/// Template for allocate function, such like SBIT0, BIT0
 	/** in the case that MEM_TYPE is numeric **/
 	template<bool is_signed, typename int_type, C_Int64 mask, typename MEM_TYPE>
-		struct COREARRAY_DLL_DEFAULT ALLOC_FUNC<BIT_INTEGER<0u, is_signed, int_type, mask>, MEM_TYPE>
+		struct COREARRAY_DLL_DEFAULT
+		ALLOC_FUNC<BIT_INTEGER<0u, is_signed, int_type, mask>, MEM_TYPE>
 	{
 		/// integer type
 		typedef typename
@@ -419,6 +424,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			// initialize
 			const unsigned N_BIT = (I.Handler->BitOf());
 			SIZE64 pI = I.Ptr * N_BIT;
@@ -445,6 +451,8 @@ namespace CoreArray
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
 			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr++;
 			// initialize
 			const unsigned N_BIT = (I.Handler->BitOf());
 			SIZE64 pI = I.Ptr * N_BIT;
@@ -472,8 +480,10 @@ namespace CoreArray
 		}
 
 		/// write an array to CdAllocator
-		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p, ssize_t n)
+		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
+			ssize_t n)
 		{
+			if (n <= 0) return p;
 			// initialize
 			const unsigned N_BIT = (I.Handler->BitOf());
 			SIZE64 pI = I.Ptr * N_BIT;
@@ -504,8 +514,11 @@ namespace CoreArray
 		}
 
 		/// append an array to CdAllocator
-		static const MEM_TYPE *Append(CdIterator &I, const MEM_TYPE *p, ssize_t n)
+		static const MEM_TYPE *Append(CdIterator &I, const MEM_TYPE *p,
+			ssize_t n)
 		{
+			if (n <= 0) return p;
+
 			// compression extended info
 			const unsigned N_BIT = (I.Handler->BitOf());
 			TdCompressRemainder *ar = (I.Handler->PipeInfo() != NULL) ?
@@ -553,6 +566,38 @@ namespace CoreArray
 		}
 	};
 }
+
+
+
+#ifdef COREARRAY_POPCNT
+
+#   define POPCNT_U32(x)    _mm_popcnt_u32((uint32_t)(x))
+#   ifdef COREARRAY_REGISTER_BIT32
+#       define POPCNT_U64(x)    \\
+#           _mm_popcnt_u32((uint32_t)(x)) + _mm_popcnt_u32((uint64_t)(x) >> 32)
+#   else
+#       define POPCNT_U64(x)    _mm_popcnt_u64((uint64_t)(x))
+#   endif
+
+#else
+
+inline static int POPCNT_U32(uint32_t x)
+{
+	x = x - ((x >> 1) & 0x55555555);
+	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+	return (((x + (x >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+}
+
+inline static int POPCNT_U64(uint64_t x)
+{
+	x -= ((x >> 1) & 0x5555555555555555LLU);
+	x = (x & 0x3333333333333333LLU) + ((x >> 2) & 0x3333333333333333LLU);
+	x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0FLLU;
+	return (x * 0x0101010101010101LLU) >> 56;
+}
+
+#endif
+
 
 
 #include "dBitGDS_Bit1.h"

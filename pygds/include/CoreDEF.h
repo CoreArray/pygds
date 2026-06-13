@@ -8,7 +8,7 @@
 //
 // CoreDEF.h: CoreArray library global macro
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     CoreDEF.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007-2026
  *	\brief    CoreArray library global macro
  *	\details
 **/
@@ -65,6 +65,12 @@
  *
  *  \subsection compression COREARRAY_USE_LZMA_EXT
  *  If defined, uses the liblzma head file in the default path (e.g., the include path in the operating system)
+ *
+ *  \subsection compression COREARRAY_NO_COMPILER_OPTIMIZE
+ *  If defined, does not include #pragma GCC optimize("O3") or similar
+ *
+ *  \subsection compression COREARRAY_NO_TARGET
+ *  If defined, does not use __attribute__((target())) or __attribute__((target_clones()))
  *
 **/
 
@@ -247,145 +253,9 @@
 #   endif
 #endif
 
-// ACC
-#ifdef _ACC_
-#   define COREARRAY_CC_ACC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Altium MicroBlaze C
-#if defined(__CMB__) || defined(__CHC__)
-#   define COREARRAY_CC_ALTIM_MICROBLAZE
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Amsterdam Compiler Kit
-#ifdef __ACK__
-#   define COREARRAY_CC_AMSTERDAM
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Aztec C
-#if defined(__AZTEC_C__) || defined(AZTEC_C)
-#   define COREARRAY_CC_AZTEC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// CC65
-#ifdef __CC65__
-#   define COREARRAY_CC_6502
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Comeau C++
-#ifdef __COMO__
-#   define COREARRAY_CC_COMEAU
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Compaq C/C++
-#if defined(__DECC) || defined(__DECC_VER)
-#   define COREARRAY_CC_COMPAG
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Convex C
-#ifdef __convexc__
-#   define COREARRAY_CC_CONVEX
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Cray C
-#ifdef _CRAYC
-#   define COREARRAY_CC_CRAY
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Diab C/C++
-#ifdef __DCC__
-#   define COREARRAY_CC_DIAB
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// DICE C
-#ifdef _DICE
-#   define COREARRAY_CC_DICE
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Digital Mars
-#ifdef __DMC__
-#   define COREARRAY_CC_DIGITAL_MARS
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Dignus Systems/C++
+// Dignus Systems/C++ for the IBM mainframe
 #ifdef __SYSC__
 #   define COREARRAY_CC_DIGNUS
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// DJGPP
-#if defined(__DJGPP__) || defined(__GO32__)
-#   define COREARRAY_CC_DJGPP
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// EDG C++ Frontend
-#ifdef __EDG__
-#   define COREARRAY_CC_EDG
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// EKOPath
-#ifdef __PATHCC__
-#   define COREARRAY_CC_EKOPATH
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Fujitsu C++
-#ifdef __FCC_VERSION
-#   define COREARRAY_CC_FUJITSU
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Green Hill C/C++
-#ifdef __ghs__
-#   define COREARRAY_CC_GHS
 #   ifndef COREARRAY_PREDEFINED_CC_COMPILER
 #       define COREARRAY_PREDEFINED_CC_COMPILER
 #   endif
@@ -407,105 +277,9 @@
 #   endif
 #endif
 
-// ImageCraft C
-#ifdef __IMAGECRAFT__
-#   define COREARRAY_CC_IMAGECRAFT
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// KAI C++
-#ifdef __KCC
-#   define COREARRAY_CC_KAI
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
 // KEIL
 #if defined(__CA__) || defined(__KEIL__) || defined(__C166__) || defined(__C51__) || defined(__CX51__)
 #   define COREARRAY_CC_KEIL
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// LCC
-#ifdef __LCC__
-#   define COREARRAY_CC_LCC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// MetaWare High C/C++
-#ifdef __HIGHC__
-#   define COREARRAY_CC_MWHIGH
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Metrowerks CodeWarrior
-#if defined(__MWERKS__) || defined(__CWCC__)
-#   define COREARRAY_CC_MWERKS
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Microtec C/C++
-#ifdef _MRI
-#   define COREARRAY_CC_MICROTEC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Microway NDP C
-#if defined(__NDPC__) || defined(__NDPX__)
-#   define COREARRAY_CC_NDP
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// MIPSpro
-#if defined(__sgi) || defined(sgi)
-#   define COREARRAY_CC_MIPSPRO
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Miracle C
-#ifdef MIRACLE
-#   define COREARRAY_CC_MIRACLE
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// MPW C++
-#if defined(__MRC__) || defined(MPW_C) || defined(MPW_CPLUS)
-#   define COREARRAY_CC_MPW
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Norcroft C
-#ifdef __CC_NORCROFT
-#   define COREARRAY_CC_NORCROFT
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// NWCC
-#ifdef __NWCC__
-#   define COREARRAY_CC_NW
 #   ifndef COREARRAY_PREDEFINED_CC_COMPILER
 #       define COREARRAY_PREDEFINED_CC_COMPILER
 #   endif
@@ -519,41 +293,9 @@
 #   endif
 #endif
 
-// Pacific C
-#ifdef __PACIFIC__
-#   define COREARRAY_CC_PACIFIC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Palm C/C++
-#ifdef _PACC_VER
-#   define COREARRAY_CC_PALM
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Pelles C
-#ifdef __POCC__
-#   define COREARRAY_CC_PELLES
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
 // Portland Group C/C++
 #if defined(__PGI) || defined(__PGIC__)
 #   define COREARRAY_CC_PGI
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Renesas C/C++
-#if defined(__RENESAS__) || defined(__HITACHI__)
-#   define COREARRAY_CC_RENESAS
 #   ifndef COREARRAY_PREDEFINED_CC_COMPILER
 #       define COREARRAY_PREDEFINED_CC_COMPILER
 #   endif
@@ -567,49 +309,9 @@
 #   endif
 #endif
 
-// SCO OpenServer
-#ifdef _SCO_DS
-#   define COREARRAY_CC_SCODS
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
 // Small Device C Compiler
 #ifdef SDCC
 #   define COREARRAY_CC_SDCC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// SN Compiler
-#ifdef __SNC__
-#   define COREARRAY_CC_SN
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Stratus VOS C
-#ifdef __VOSC__
-#   define COREARRAY_CC_VOS
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// Symantec C++
-#ifdef __SC__
-#   define COREARRAY_CC_SYMANTEC
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
-// TenDRA C/C++
-#ifdef __TenDRA__
-#   define COREARRAY_CC_TENDRA
 #   ifndef COREARRAY_PREDEFINED_CC_COMPILER
 #       define COREARRAY_PREDEFINED_CC_COMPILER
 #   endif
@@ -623,14 +325,6 @@
 #   endif
 #endif
 
-// THINK C
-#if defined(THINKC3) || defined(THINKC4)
-#   define COREARRAY_CC_THINK
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
 // Tiny C
 #ifdef __TINYC__
 #   define COREARRAY_CC_TINY
@@ -639,54 +333,47 @@
 #   endif
 #endif
 
-// Turbo C/C++
-#ifdef __TURBOC__
-#   define COREARRAY_CC_TURBO
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
+
+
+// ===========================================================================
+// C++ Versions
+// ===========================================================================
+
+#ifdef __cplusplus
+#   define COREARRAY_CPP
+#   if __cplusplus >= 201103L
+#       define COREARRAY_CPP_V11
+#   endif
+#   if __cplusplus >= 201402L
+#       define COREARRAY_CPP_V14
+#   endif
+#   if __cplusplus >= 201703L
+#       define COREARRAY_CPP_V17
+#   endif
+#   if __cplusplus >= 202002L
+#       define COREARRAY_CPP_V20
+#   endif
+#   if __cplusplus >= 202302L
+#       define COREARRAY_CPP_V23
+#   endif
+#   if __cplusplus >= 202612L
+#       define COREARRAY_CPP_V26
 #   endif
 #endif
 
-// Ultimate C/C++
-#ifdef _UCC
-#   define COREARRAY_CC_ULTIMATE
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
 
-// USL C
-#if defined(__USLC__) || defined(__SCO_VERSION__)
-#   define COREARRAY_CC_USL
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
 
-// VBCC
-#ifdef __VBCC__
-#   define COREARRAY_CC_VB
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
+// ===========================================================================
+// Noexcept Specifier
+// ===========================================================================
 
-// Watcom C++
-#ifdef __WATCOMC__
-#   define COREARRAY_CC_WATCOM
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
+#ifdef COREARRAY_CPP_V11
+#   define COREARRAY_NOEXCEPT_TRUE     noexcept(true)
+#   define COREARRAY_NOEXCEPT_FALSE    noexcept(false)
+#else
+#   define COREARRAY_NOEXCEPT_TRUE
+#   define COREARRAY_NOEXCEPT_FALSE
 #endif
-
-// Zortech C++
-#ifdef __ZTC__
-#   define COREARRAY_CC_ZORTECH
-#   ifndef COREARRAY_PREDEFINED_CC_COMPILER
-#       define COREARRAY_PREDEFINED_CC_COMPILER
-#   endif
-#endif
-
 
 
 
@@ -816,7 +503,7 @@
 // Reference: 
 // ===========================================================================
 
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 #   define COREARRAY_REGISTER_BIT64
 #else
 #   define COREARRAY_REGISTER_BIT32
@@ -890,6 +577,41 @@
 #   endif
 #endif
 #
+#ifdef __AVX512F__
+#   define COREARRAY_SIMD_AVX512F
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
+#endif
+#
+#ifdef __AVX512BW__
+#   define COREARRAY_SIMD_AVX512BW
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
+#endif
+#
+#ifdef __AVX512CD__
+#   define COREARRAY_SIMD_AVX512CD
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
+#endif
+#
+#ifdef __AVX512DQ__
+#   define COREARRAY_SIMD_AVX512DQ
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
+#endif
+#
+#ifdef __AVX512VL__
+#   define COREARRAY_SIMD_AVX512VL
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
+#endif
+
 #ifdef __FMA__
 #   define COREARRAY_SIMD_FMA
 #   ifndef COREARRAY_PREDEFINED_SIMD
@@ -907,9 +629,16 @@
 #ifdef __POPCNT__
 #   define COREARRAY_POPCNT
 #endif
-
+#
 #ifdef __LZCNT__
 #   define COREARRAY_LZCNT
+#endif
+
+#if defined(__aarch64__) && defined(__ARM_NEON)
+#   define COREARRAY_SIMD_NEON
+#   ifndef COREARRAY_PREDEFINED_SIMD
+#       define COREARRAY_PREDEFINED_SIMD
+#   endif
 #endif
 
 
@@ -917,9 +646,11 @@
 #   undef COREARRAY_SIMD_ATTR_ALIGN
 #endif
 #
-#if defined(__AVX__)
+#if defined(__AVX512F__)
+#   define COREARRAY_SIMD_ATTR_ALIGN    __attribute__((aligned(64)))
+#elif defined(__AVX__)
 #   define COREARRAY_SIMD_ATTR_ALIGN    __attribute__((aligned(32)))
-#elif defined(__SSE__)
+#elif defined(__SSE__) || defined(COREARRAY_SIMD_NEON)
 #   define COREARRAY_SIMD_ATTR_ALIGN    __attribute__((aligned(16)))
 #else
 #   define COREARRAY_SIMD_ATTR_ALIGN
@@ -937,8 +668,14 @@
 #       undef COREARRAY_SIMD_SSE4_2
 #       undef COREARRAY_SIMD_AVX
 #       undef COREARRAY_SIMD_AVX2
+#       undef COREARRAY_SIMD_AVX512F
+#       undef COREARRAY_SIMD_AVX512BW
+#       undef COREARRAY_SIMD_AVX512CD
+#       undef COREARRAY_SIMD_AVX512DQ
+#       undef COREARRAY_SIMD_AVX512VL
 #       undef COREARRAY_SIMD_FMA
 #       undef COREARRAY_SIMD_FMA4
+#       undef COREARRAY_SIMD_NEON
 #   endif
 #endif
 
@@ -967,7 +704,7 @@
 #   if defined(COREARRAY_PLATFORM_UNIX)
 #
 #       if defined(COREARRAY_PLATFORM_MACOS)
-#           if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
+#           if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__)
 #               define COREARRAY_ENDIAN_LITTLE
 #           elif defined(__ppc__) || defined(__ppc64__)
 #               define COREARRAY_ENDIAN_BIG
@@ -1063,7 +800,6 @@
 #   undef COREARRAY_HAVE_FLATTEN
 #endif
 
-// if defined, set "COREARRAY_FORCEINLINE = COREARRAY_INLINE"
 #ifdef COREARRAY_NO_FLATTEN
 #   ifdef COREARRAY_HAVE_FLATTEN
 #       undef COREARRAY_HAVE_FLATTEN
@@ -1134,9 +870,16 @@
 // On the Intel x86, it supports mixing legacy codes that run with a 4-byte
 //   aligned stack with modern codes that keep a 16-byte stack for SSE
 //   compatibility.
-// Reference: https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html#Function-Attributes
-// Q: need to check whether the platform is Intel x86?
-// TODO: need force_align_arg_pointer for AVX, AVX2? No document exists by now
+// Note: An explicit x86 check is not strictly needed here because __MINGW32__
+//   inherently targets x86/x86_64 on Windows, and GCC ignores the attribute on
+//   unsupported architectures.
+// Note: force_align_arg_pointer only guarantees 16-byte stack alignment (for
+//   SSE). It is NOT sufficient for AVX (32-byte) or AVX-512 (64-byte). However,
+//   no additional attribute is needed because: (1) AVX/AVX2 code is typically
+//   compiled for x86-64 where the ABI already mandates 16-byte alignment and
+//   the compiler handles wider alignment for local SIMD variables internally;
+//   (2) on 32-bit MinGW, GCC's -mavx already implies stack realignment for
+//   functions using AVX intrinsics.
 // ===========================================================================
 
 #ifdef COREARRAY_HAVE_CALL_ALIGN
@@ -1169,6 +912,36 @@
 
 
 
+
+// ===========================================================================
+// Compiler optimization flags
+// ===========================================================================
+
+#if defined(COREARRAY_COMPILER_OPTIMIZE_FLAG) && !defined(COREARRAY_NO_COMPILER_OPTIMIZE)
+#   if defined(__clang__) && !defined(__APPLE__)
+#       pragma clang optimize on
+#   endif
+#   if defined(__GNUC__) && ((__GNUC__>4) || (__GNUC__==4 && __GNUC_MINOR__>=4))
+#       if (COREARRAY_COMPILER_OPTIMIZE_FLAG == 0)
+#           pragma GCC optimize("O0")
+#       elif (COREARRAY_COMPILER_OPTIMIZE_FLAG == 1)
+#           pragma GCC optimize("O1")
+#       elif (COREARRAY_COMPILER_OPTIMIZE_FLAG == 2)
+#           pragma GCC optimize("O2")
+#       elif (COREARRAY_COMPILER_OPTIMIZE_FLAG == 3)
+#           pragma GCC optimize("O3")
+#       elif (COREARRAY_COMPILER_OPTIMIZE_FLAG == 4)
+#           pragma GCC optimize("Ofast")
+#       else
+#           error "COREARRAY_COMPILER_OPTIMIZE_FLAG should be 0,1,2,3 or 4."
+#       endif
+#   endif
+#endif
+
+
+
+
+// ===========================================================================
 
 // CoreArray library code control
 #define COREARRAY_CODE_DEBUG

@@ -21,17 +21,31 @@ Dr. Xiuwen Zheng ([zhengxwen@gmail.com](zhengxwen@gmail.com))
 
 ## Prerequisites
 
-Python 2 (2.6-2.7), and Python 3 (3.3-3.6)
+Python 3 (3.8+)
 
-NumPy 1.6.0 or later
+NumPy 1.20 or later
 
-liblzma in [xz](https://tukaani.org/xz/) utilities
+liblzma in [xz](https://tukaani.org/xz/) utilities (for XZ/LZMA compression).
+The bundled CoreArray sources also build in ZLIB and LZ4, so the supported
+compression methods are: `ZIP`/`ZIP_RA` (zlib), `LZMA`/`LZMA_RA` (xz), and
+`LZ4`/`LZ4_RA`.
+
+On macOS with Homebrew, install xz with `brew install xz`; the build probes
+`/opt/homebrew/opt/xz` and `/usr/local/opt/xz` automatically, or set the
+`LZMA_PREFIX` environment variable to point at a custom prefix.
 
 
 ## Installation
 
 ```sh
-pip install git+git://github.com/CoreArray/pygds.git
+pip install git+https://github.com/CoreArray/pygds.git
+```
+
+Or, from a checkout, build the extension in place:
+
+```sh
+python3 setup.py build_ext --inplace
+PYTHONPATH=. python3 tests/test_pygds.py   # run the test suite
 ```
 
 

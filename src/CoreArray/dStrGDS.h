@@ -8,7 +8,7 @@
 //
 // dStrGDS.h: GDS format with character types and functions
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2020    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dStrGDS.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2020
  *	\brief    GDS format with character types and functions
  *	\details
 **/
@@ -60,7 +60,7 @@ namespace CoreArray
 		typedef UTF8String TType;
 		typedef C_UTF8 ElmType;
 		typedef char RawType;
-		static const int trVal = COREARRAY_TR_FIXED_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_FIXED_LEN_STRING;
 		static const unsigned BitOf = 8u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF8;
@@ -74,7 +74,7 @@ namespace CoreArray
 		typedef UTF16String TType;
 		typedef C_UTF16 ElmType;
 		typedef C_UTF16 RawType;
-		static const int trVal = COREARRAY_TR_FIXED_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_FIXED_LEN_STRING;
 		static const unsigned BitOf = 16u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF16;
@@ -88,7 +88,7 @@ namespace CoreArray
 		typedef UTF32String TType;
 		typedef C_UTF32 ElmType;
 		typedef C_UTF32 RawType;
-		static const int trVal = COREARRAY_TR_FIXED_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_FIXED_LEN_STRING;
 		static const unsigned BitOf = 32u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svCustomStr;
@@ -182,8 +182,8 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
-			const typename TdTraits< FIXED_LEN<TYPE> >::RawType
-				ZERO_CHAR = 0;
+			if (n <= 0) return p;
+			const typename TdTraits< FIXED_LEN<TYPE> >::RawType ZERO_CHAR = 0;
 			const ssize_t ElmSize =
 				static_cast<CdAllocArray*>(I.Handler)->ElmSize();
 			const ssize_t N = ElmSize / sizeof(TYPE);
@@ -207,12 +207,14 @@ namespace CoreArray
 		}
 
 		/// read an array from CdAllocator with selection
-		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n, const C_BOOL sel[])
+		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
+			const C_BOOL sel[])
 		{
-			const typename TdTraits< FIXED_LEN<TYPE> >::RawType
-				ZERO_CHAR = 0;
+			if (n <= 0) return p;
 			const ssize_t ElmSize =
 				static_cast<CdAllocArray*>(I.Handler)->ElmSize();
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += ElmSize;
+			const typename TdTraits< FIXED_LEN<TYPE> >::RawType ZERO_CHAR = 0;
 			const ssize_t N = ElmSize / sizeof(TYPE);
 			StrType s(N, ZERO_CHAR), ss;
 
@@ -240,11 +242,10 @@ namespace CoreArray
 		}
 
 		/// write an array to CdAllocator
-		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
-			ssize_t n)
+		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p, ssize_t n)
 		{
-			CdFixedStr<TYPE> *Ary =
-				static_cast< CdFixedStr<TYPE>* >(I.Handler);
+			if (n <= 0) return p;
+			CdFixedStr<TYPE> *Ary = static_cast< CdFixedStr<TYPE>* >(I.Handler);
 			ssize_t ElmSize = Ary->ElmSize();
 			StrType s;
 
@@ -309,7 +310,7 @@ namespace CoreArray
 		typedef UTF8String TType;
 		typedef C_UTF8 ElmType;
 		typedef char RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 8u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF8;
@@ -323,7 +324,7 @@ namespace CoreArray
 		typedef UTF16String TType;
 		typedef C_UTF16 ElmType;
 		typedef C_UTF16 RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 16u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF16;
@@ -337,7 +338,7 @@ namespace CoreArray
 		typedef UTF32String TType;
 		typedef C_UTF32 ElmType;
 		typedef C_UTF32 RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 32u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svCustomStr;
@@ -549,6 +550,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdCString<TYPE> *IT = static_cast< CdCString<TYPE>* >(I.Handler);
 			IT->_Find_Position(I.Ptr / sizeof(TYPE));
 			I.Ptr += n * sizeof(TYPE);
@@ -561,6 +563,8 @@ namespace CoreArray
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
 			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += sizeof(TYPE);
 			CdCString<TYPE> *IT = static_cast< CdCString<TYPE>* >(I.Handler);
 			IT->_Find_Position(I.Ptr / sizeof(TYPE));
 			I.Ptr += n * sizeof(TYPE);
@@ -578,11 +582,11 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
 			ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdCString<TYPE> *IT = static_cast< CdCString<TYPE>* >(I.Handler);
 			SIZE64 Idx = I.Ptr / sizeof(TYPE);
 			if (Idx < IT->fTotalCount)
 				IT->_Find_Position(Idx);
-
 			for (; n > 0; n--)
 			{
 				if (Idx < IT->fTotalCount)
@@ -622,7 +626,7 @@ namespace CoreArray
 		typedef UTF8String TType;
 		typedef C_UTF8 ElmType;
 		typedef char RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 8u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF8;
@@ -636,7 +640,7 @@ namespace CoreArray
 		typedef UTF16String TType;
 		typedef C_UTF16 ElmType;
 		typedef C_UTF16 RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 16u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svStrUTF16;
@@ -650,7 +654,7 @@ namespace CoreArray
 		typedef UTF32String TType;
 		typedef C_UTF32 ElmType;
 		typedef C_UTF32 RawType;
-		static const int trVal = COREARRAY_TR_VARIABLE_LENGTH_STRING;
+		static const int trVal = COREARRAY_TR_VARIABLE_LEN_STRING;
 		static const unsigned BitOf = 32u;
 		static const bool IsPrimitive = false;
 		static const C_SVType SVType = svCustomStr;
@@ -911,6 +915,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdString<TYPE> *IT = static_cast< CdString<TYPE>* >(I.Handler);
 			IT->_Find_Position(I.Ptr / sizeof(TYPE));
 			I.Ptr += n * sizeof(TYPE);
@@ -923,6 +928,8 @@ namespace CoreArray
 		static MEM_TYPE *ReadEx(CdIterator &I, MEM_TYPE *p, ssize_t n,
 			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += sizeof(TYPE);
 			CdString<TYPE> *IT = static_cast< CdString<TYPE>* >(I.Handler);
 			IT->_Find_Position(I.Ptr / sizeof(TYPE));
 			I.Ptr += n * sizeof(TYPE);
@@ -940,6 +947,7 @@ namespace CoreArray
 		static const MEM_TYPE *Write(CdIterator &I, const MEM_TYPE *p,
 			ssize_t n)
 		{
+			if (n <= 0) return p;
 			CdString<TYPE> *IT = static_cast< CdString<TYPE>* >(I.Handler);
 			SIZE64 Idx = I.Ptr / sizeof(TYPE);
 			if (Idx < IT->fTotalCount)

@@ -8,7 +8,7 @@
 //
 // dStruct.cpp: Data container - array, matrix, etc
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -34,6 +34,9 @@
 using namespace std;
 using namespace CoreArray;
 using namespace CoreArray::_INTERNAL;
+
+
+static const char *ERR_SVTYPE = "Invalid SVType.";
 
 
 // =====================================================================
@@ -152,7 +155,7 @@ void CdIterator::Copy(CdIterator &d, CdIterator &s, C_Int64 Count)
 		case svStrUTF16: case svCustomStr:
 			ITER_COPY(UTF16String, svStrUTF16);
 		default:
-			throw ErrContainer("Invalid SVType in destination.");
+			throw ErrContainer(ERR_SVTYPE);
 	}
 
 	#undef ITER_COPY
@@ -229,7 +232,7 @@ void *CdContainer::IterRData(CdIterator &I, void *OutBuf, ssize_t n,
 				return p;
 			}
 		default:
-			throw ErrContainer("Invalid SVType.");
+			throw ErrContainer(ERR_SVTYPE);
 	}
 
 	return OutBuf;
@@ -291,7 +294,7 @@ void *CdContainer::IterRDataEx(CdIterator &I, void *OutBuf, ssize_t n,
 				return p;
 			}
 		default:
-			throw ErrContainer("Invalid SVType.");
+			throw ErrContainer(ERR_SVTYPE);
 	}
 
 	return OutBuf;
@@ -349,7 +352,7 @@ const void *CdContainer::IterWData(CdIterator &I, const void *InBuf,
 				return p;
 			}
 		default:
-			throw ErrContainer("Invalid SVType.");
+			throw ErrContainer(ERR_SVTYPE);
 	}
 
 	return InBuf;
@@ -710,7 +713,7 @@ void CdAbstractArray::AppendIter(CdIterator &I, C_Int64 Count)
 		case svStrUTF16: case svCustomStr:
 			ITER_APPEND(UTF16String, svStrUTF16);
 		default:
-			throw ErrContainer("Invalid SVType in destination.");
+			throw ErrContainer(ERR_SVTYPE);
 	}
 
 	#undef ITER_APPEND
@@ -862,15 +865,33 @@ static const char *VAR_DATA = "DATA";
 static const char *VAR_DCNT = "DCNT";
 static const char *VAR_DIM  = "DIM";
 
-static const char *ERR_ELM_SIZE        = "%s: Invalid ElmSize (%d).";
-static const char *ERR_INV_DIM_CNT     = "%s: Invalid number of dimensions (%d).";
-static const char *ERR_INV_DIMLEN      = "%s: Invalid length of the %d dimension (%d).";
-static const char *ERR_INV_DIM_INDEX   = "%s: Invalid index of dimentions (%d).";
-static const char *ERR_DIM_INDEX       = "Invalid dimension index.";
-static const char *ERR_DIM_INDEX_VALUE = "Invalid %d-th dimension size: %d.";
-static const char *ERR_APPEND_SV       = "Invalid 'InSV' in 'CdAllocArray::Append'.";
-static const char *ERR_PACKED_MODE     = "Invalid packed/compression method '%s'.";
-static const char *ERR_SETELMSIZE      = "CdAllocArray::SetElmSize, Invalid parameter.";
+static const char *ERR_ELM_SIZE      = "%s: Invalid ElmSize (%d).";
+static const char *ERR_INV_DIM_CNT   = "%s: Invalid number of dimensions (%d).";
+static const char *ERR_INV_DIMLEN    = "%s: Invalid length of the %d dimension (%d).";
+static const char *ERR_INV_DIM_INDEX = "%s: Invalid index of dimentions (%d).";
+static const char *ERR_DIM_INDEX     = "Invalid dimension index.";
+static const char *ERR_DIM_INDEX_VAL = "Invalid %d-th dimension size: %d.";
+static const char *ERR_APPEND_SV     = "Invalid 'InSV' in 'CdAllocArray::Append'.";
+static const char *ERR_PACKED_MODE   = "Invalid packed/compression method '%s'.";
+static const char *ERR_SETELMSIZE    = "CdAllocArray::SetElmSize, Invalid parameter.";
+static const char *ERR_TOT_OVERFLOW  = "%s: total element count overflows C_Int64 (dim %d: %d).";
+
+/// Multiply the running C_Int64 `acc` by `dim` (a non-negative C_Int32),
+/// throwing ErrArray via the supplied site name if the result would
+/// overflow. Caller guarantees `acc >= 0` and `dim >= 0`.
+static inline C_Int64 CheckedMulDim(C_Int64 acc, C_Int32 dim,
+	const char *site, int dimIdx)
+{
+	// acc == 0 stays 0; avoids a divide by zero in the overflow check and
+	// matches R's view that a zero dimension collapses the product.
+	if (acc == 0) return 0;
+	if (dim < 0)
+		throw ErrArray(ERR_INV_DIMLEN, site, dimIdx, (int)dim);
+	// Saturating check: detect overflow before it happens.
+	if ((C_UInt64)acc > (C_UInt64)TdTraits<C_Int64>::Max() / (C_UInt64)(dim ? dim : 1))
+		throw ErrArray(ERR_TOT_OVERFLOW, site, dimIdx, (int)dim);
+	return acc * (C_Int64)dim;
+}
 
 
 CdAllocArray::CdAllocArray(ssize_t vElmSize): CdAbstractArray()
@@ -878,12 +899,10 @@ CdAllocArray::CdAllocArray(ssize_t vElmSize): CdAbstractArray()
 	fElmSize = vElmSize;
 	if (vElmSize <= 0)
 		throw ErrArray(ERR_ELM_SIZE, "CdAllocArray::CdAllocArray", vElmSize);
-
 	fDimension.resize(1);
 	fDimension[0].DimElmSize = fElmSize;
 	fDimension[0].DimElmCnt = 1;
 	fTotalCount = 0;
-
 	vAllocID = 0;
 	vAllocStream = NULL;
 	vAlloc_Ptr = vCnt_Ptr = 0;
@@ -936,9 +955,10 @@ void CdAllocArray::ResetDim(const C_Int32 DimLen[], int DCnt)
 		}
 	}
 
-	// the total count of DimLen
+	// the total count of DimLen, overflow-checked
 	C_Int64 TotCnt = 1;
-	for (int i=0; i < DCnt; i++) TotCnt *= DimLen[i];
+	for (int i=0; i < DCnt; i++)
+		TotCnt = CheckedMulDim(TotCnt, DimLen[i], "CdAllocArray::ResetDim", i);
 
 	if (TotCnt > fTotalCount)
 	{
@@ -1366,9 +1386,9 @@ void CdAllocArray::_CheckSetDLen(int I, C_Int32 Value)
 	if ((I < 0) || (I >= (int)fDimension.size()))
 		throw ErrArray(ERR_INV_DIM_INDEX, "CdAllocArray::SetDLen", I);
 	if (Value < 0)
-		throw ErrArray(ERR_DIM_INDEX_VALUE, I, Value);
+		throw ErrArray(ERR_DIM_INDEX_VAL, I, Value);
 	if ((Value == 0) && (I > 0))
-		throw ErrArray(ERR_DIM_INDEX_VALUE, I, Value);
+		throw ErrArray(ERR_DIM_INDEX_VAL, I, Value);
 }
 
 SIZE64 CdAllocArray::_IndexPtr(const C_Int32 DimI[])
@@ -1386,14 +1406,17 @@ SIZE64 CdAllocArray::_IndexPtr(const C_Int32 DimI[])
 void CdAllocArray::_ResetDim(const C_Int32 DimLen[], int DCnt)
 {
 	fDimension.resize(DCnt);
-	SIZE64 TotCnt = 1;
+	// Accumulate the total element count with overflow detection; a
+	// crafted .gds file can otherwise advertise dims whose product wraps
+	// C_Int64 and leaves `fTotalCount` misrepresenting the real size.
+	C_Int64 TotCnt = 1;
 	for (int i=DCnt-1; i >= 0; i--)
 	{
 		TDimItem &D = fDimension[i];
 		D.DimLen = DimLen[i];
 		D.DimElmSize = TotCnt * fElmSize;
 		D.DimElmCnt = TotCnt;
-		TotCnt *= D.DimLen;
+		TotCnt = CheckedMulDim(TotCnt, D.DimLen, "CdAllocArray::_ResetDim", i);
 	}
 	fTotalCount = TotCnt;
 }
@@ -1422,6 +1445,7 @@ void CdAllocArray::Loading(CdReader &Reader, TdVersion Version)
 		Reader[VAR_DATA] >> vAllocID;
 		vAlloc_Ptr = Reader.PropPosition(VAR_DATA);
 		vAllocStream = fGDSStream->Collection()[vAllocID];
+		vAllocStream->SetPosition(0);
 		fAllocator.Initialize(*vAllocStream, true, !fGDSStream->ReadOnly());
 		if (fPipeInfo)
 			fPipeInfo->PushReadPipe(*fAllocator.BufStream());
@@ -1561,16 +1585,16 @@ void CdAllocArray::_SetDimAuto(int DimIndex)
 {
 	vector<TDimItem>::iterator it = fDimension.begin() + DimIndex;
 	SIZE64 LSize = it->DimElmSize;
-	SIZE64 LCnt = it->DimElmCnt;
+	C_Int64 LCnt = it->DimElmCnt;
 	for (; DimIndex >= 1; DimIndex--)
 	{
 		LSize = LSize * it->DimLen;
-		LCnt = LCnt * it->DimLen;
+		LCnt = CheckedMulDim(LCnt, it->DimLen, "CdAllocArray::_SetDimAuto", DimIndex);
 		it--;
 		it->DimElmSize = LSize;
 		it->DimElmCnt = LCnt;
 	}
-	fTotalCount = it->DimLen * LCnt;
+	fTotalCount = CheckedMulDim(LCnt, it->DimLen, "CdAllocArray::_SetDimAuto", 0);
 	fNeedUpdate = true;
 }
 
@@ -2023,7 +2047,8 @@ void CdArrayRead::Read(void *Buffer)
 			}
 		}
 	} else {
-		throw ErrArray("Invalid CdArrayRead::Read.");	
+		static const char *ERR_READ = "Invalid CdArrayRead::Read.";
+		throw ErrArray(ERR_READ);
 	}
 }
 
@@ -2038,7 +2063,10 @@ void CoreArray::Balance_ArrayRead_Buffer(CdArrayRead *array[], int n,
 	C_Int64 buffer_size)
 {
 	if (n <= 0)
-		throw ErrArray("CoreArray::Balance_ArrayRead_Buffer !");
+	{
+		static const char *ERR_READ_BUF = "CoreArray::Balance_ArrayRead_Buffer !";
+		throw ErrArray(ERR_READ_BUF);
+	}
 
 	if (buffer_size < 0)
 		buffer_size = ARRAY_READ_MEM_BUFFER_SIZE;

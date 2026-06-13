@@ -8,7 +8,7 @@
 //
 // dAny.cpp: Methods for CdAny
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -26,7 +26,7 @@
 // If not, see <http://www.gnu.org/licenses/>.
 
 #include "dAny.h"
-
+#include <cstring>   // memset, used by CdAny copy constructor
 
 using namespace std;
 using namespace CoreArray;
@@ -48,6 +48,16 @@ Err_dsAny::Err_dsAny(CdAny::TDataType fromType, CdAny::TDataType toType):
 CdAny::CdAny()
 {
 	dsType = dvtNULL;
+}
+
+CdAny::CdAny(const CdAny &_Right)
+{
+	// Start from a clean slate: set dsType to NULL and zero the tagged
+	// union so `operator='s` internal `_Done()` does not dereference stale
+	// pointers. Then delegate to operator= for the real deep-copy logic.
+	dsType = dvtNULL;
+	memset(&mix, 0, sizeof(mix));
+	*this = _Right;
 }
 
 CdAny::~CdAny()
@@ -501,68 +511,75 @@ void CdAny::SetPtr(const void *ptr)
 
 void CdAny::SetArray(C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 }
 
 void CdAny::SetArray(const C_Int32 ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i] = ptr[i];
 }
 
 void CdAny::SetArray(const C_Int64 ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i] = ptr[i];
 }
 
 void CdAny::SetArray(const C_Float64 ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i] = ptr[i];
 }
 
 void CdAny::SetArray(const char* const ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i] = UTF8Text(ptr[i]);
 }
 
 void CdAny::SetArray(const std::string ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i] = UTF8Text(ptr[i]);
 }
 
 void CdAny::SetArray(const bool ptr[], C_UInt32 size)
 {
+	CdAny *p = new CdAny[size];
 	_Done();
 	dsType = dvtArray;
 	mix.aArray.ArrayLength = size;
-	mix.aArray.ArrayPtr = new CdAny[size];
+	mix.aArray.ArrayPtr = p;
 	for (C_UInt32 i=0; i < size; i++)
 		mix.aArray.ArrayPtr[i].SetBool(ptr[i]);
 }
@@ -739,11 +756,12 @@ bool CdAny::Packed()
 
 void CdAny::Swap(CdAny &D)
 {
-	char buf[sizeof(CdAny)];
-
-	memcpy((void*)buf, (void*)&D, sizeof(CdAny));
-	memcpy((void*)&D, (void*)this, sizeof(CdAny));
-	memcpy((void*)this, (void*)buf, sizeof(CdAny));
+	TDataType tmpType = D.dsType;
+	TUnion tmpMix = D.mix;
+	D.dsType = dsType;
+	D.mix = mix;
+	dsType = tmpType;
+	mix = tmpMix;
 }
 
 int CdAny::Compare(const CdAny &D, bool NALast)
@@ -775,8 +793,15 @@ int CdAny::Compare(const CdAny &D, bool NALast)
 			else
 				return 0;
 		} else {
-			long double F1 = GetFloat64();
-			long double F2 = D.GetFloat64();
+			double F1 = GetFloat64();
+			double F2 = D.GetFloat64();
+			if (CoreArray::IsNaN(F1) || CoreArray::IsNaN(F2))
+			{
+				if (CoreArray::IsNaN(F1) && CoreArray::IsNaN(F2))
+					return 0;
+				return CoreArray::IsNaN(F1) ?
+					(NALast ? 1 : -1) : (NALast ? -1 : 1);
+			}
 			if (F1 < F2)
 				return -1;
 			else if (F1 > F2)
@@ -796,15 +821,18 @@ CdAny & CdAny::operator= (const CdAny &_Right)
 		switch (_Right.dsType)
 		{
 			case dvtArray:
+			{
+				CdAny *p = new CdAny[_Right.mix.aArray.ArrayLength];
 				dsType = dvtArray;
-				mix.aArray.ArrayPtr = new CdAny[_Right.mix.aArray.ArrayLength];
 				mix.aArray.ArrayLength = _Right.mix.aArray.ArrayLength;
+				mix.aArray.ArrayPtr = p;
 				for (C_UInt32 i=0; i < mix.aArray.ArrayLength; i++)
 					mix.aArray.ArrayPtr[i] = _Right.mix.aArray.ArrayPtr[i];
 				break;
+			}
 			case dvtObjRef:
 				dsType = dvtObjRef;
-				memcpy((void*)this, (void*)&_Right, sizeof(CdAny));
+				mix = _Right.mix;
 				if (mix.aR.obj)
 					mix.aR.obj->AddRef();
 				break;
@@ -821,7 +849,8 @@ CdAny & CdAny::operator= (const CdAny &_Right)
 				mix.aR.ptrStr32 = new UTF32String(*_Right.mix.aR.ptrStr32);
 				break;
 			default:
-				memcpy(this, &_Right, sizeof(CdAny));
+				dsType = _Right.dsType;
+				mix = _Right.mix;
 		}
 	}
 	return *this;
@@ -928,6 +957,13 @@ CdReader& CoreArray::operator>> (CdReader &s, CdAny& out)
 			} else
 				out.mix.aR.obj = NULL;
 			break;
+
+		default:
+		{
+			int bad = (int)out.dsType;
+			out.dsType = CdAny::dvtNULL;
+			throw Err_dsAny("Unknown dsType (%d) in deserialization.", bad);
+		}
 	}
 	return s;
 }

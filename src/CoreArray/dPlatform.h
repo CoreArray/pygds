@@ -8,7 +8,7 @@
 //
 // dPlatform.h: Functions for independent platforms
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dPlatform.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2018
  *	\brief    Functions for independent platforms
  *	\details
 **/
@@ -49,6 +49,11 @@
 #include <queue>
 
 #if defined(COREARRAY_USING_R)
+#   ifdef STRICT_R_HEADERS
+#       undef STRICT_R_HEADERS
+#   endif
+#   define STRICT_R_HEADERS 1
+#
 #   include <R_ext/Arith.h>
 #   include <Rinternals.h>
 #
@@ -129,9 +134,9 @@ namespace CoreArray
 	COREARRAY_DLL_DEFAULT bool IsNegInf(const long double val);
 
 	// whether v1 == v2, considering NaN
-	COREARRAY_DLL_DEFAULT bool EqaulFloat(const float v1, const float v2);
-	COREARRAY_DLL_DEFAULT bool EqaulFloat(const double v1, const double v2);
-	COREARRAY_DLL_DEFAULT bool EqaulFloat(const long double v1, const long double v2);
+	COREARRAY_DLL_DEFAULT bool EqualFloat(const float v1, const float v2);
+	COREARRAY_DLL_DEFAULT bool EqualFloat(const double v1, const double v2);
+	COREARRAY_DLL_DEFAULT bool EqualFloat(const long double v1, const long double v2);
 
 
 
@@ -321,6 +326,13 @@ namespace CoreArray
 		const char *tempdir);
 	/// test if the file exists
 	COREARRAY_DLL_DEFAULT bool FileExists(const string &FileName);
+	/// remove a file on disk (UTF-8 filename, handles non-ASCII on Windows);
+	/// returns 0 on success, otherwise an errno-style error code
+	COREARRAY_DLL_DEFAULT int FileRemove(const string &FileName);
+	/// rename a file on disk (UTF-8 filenames, handles non-ASCII on Windows);
+	/// returns 0 on success, otherwise an errno-style error code
+	COREARRAY_DLL_DEFAULT int FileRename(const string &OldName,
+		const string &NewName);
 
 
 
@@ -572,7 +584,7 @@ namespace CoreArray
 		/// constructor
 		CdThread(TdThreadProc proc, void *Data);
 		/// destructor
-		virtual ~CdThread();
+		virtual ~CdThread() COREARRAY_NOEXCEPT_FALSE;
 
 		/// start the threads
 		void BeginThread();

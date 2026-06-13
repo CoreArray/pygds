@@ -8,7 +8,7 @@
 //
 // dParallel.h: Functions for parallel computing
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,13 +27,11 @@
 
 /**
  *	\file     dParallel.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
  *	\date     2007 - 2017
  *	\brief    Functions for parallel computing
  *	\details
- *  \todo     To improve the support of reading a GDS file in parallel
- *  \todo     To support parallel reading and writing a GDS file simultaneously
 **/
 
 #ifndef _HEADER_PARALLEL_
@@ -45,6 +43,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <cstdlib>   // for std::abort (available since C++98)
 #ifndef COREARRAY_NO_STD_IN_OUT
 #	include <iostream>
 #endif
@@ -115,16 +114,20 @@ namespace CoreArray
 
 
 	#ifndef COREARRAY_NO_STD_IN_OUT
+		// Use std::abort() rather than std::exit() when terminating from a
+		// worker thread: std::exit runs atexit handlers and static destructors
+		// which is undefined behavior when invoked from a non-main thread
+		// while the main thread is still running.
 		#define COREARRAY_PARALLEL_TRY		try {
 		#define COREARRAY_PARALLEL_CATCH	\
 			} catch(std::exception &E) {	\
-				std::cerr << E.what() << std::endl; std::exit(-1); \
+				std::cerr << E.what() << std::endl; std::abort(); \
 			} catch(const char *E) { \
-				std::cerr << E << std::endl; std::exit(-1); \
+				std::cerr << E << std::endl; std::abort(); \
 			} catch(const int E) { \
-				std::cerr << "Error: " << E << std::endl; std::exit(-1); \
+				std::cerr << "Error: " << E << std::endl; std::abort(); \
 			} catch(...) { \
-				std::exit(-1); \
+				std::abort(); \
 			}
 	#else
 		#define COREARRAY_PARALLEL_TRY		{
@@ -168,10 +171,10 @@ namespace CoreArray
 			CParallelBase(int _nThread=1);
 			virtual ~CParallelBase();
 
-        	/// Initialize each thread
-			void InitThread();
-			/// Free resource when a thread finishes
-			void DoneThread();
+        	/// Initialize each thread (override in derived classes)
+			virtual void InitThread();
+			/// Free resource when a thread finishes (override in derived classes)
+			virtual void DoneThread();
 			/// Close all threads
 			void CloseThreads();
 			/// Return the total number of thread used
@@ -217,8 +220,15 @@ namespace CoreArray
 
 				DoneThread();
 
+				// join all worker threads even if EndThread throws
 				for (int i=0; i < fnThread-1; i++)
-					fThreads[i]->EndThread();
+				{
+					try {
+						fThreads[i]->EndThread();
+					} catch (...) {
+						if (i == fnThread-2) { CloseThreads(); throw; }
+					}
+				}
 
 				CloseThreads();
 			}

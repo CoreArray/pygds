@@ -8,7 +8,7 @@
 //
 // dPlatform.cpp: Functions for independent platforms
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2026    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -30,12 +30,17 @@
 
 #include <cfloat>
 #include <cmath>
+#include <cerrno>
 #include <ctime>
 
 // to include vsnprintf in Solaris
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+#if defined(COREARRAY_PLATFORM_WINDOWS)
+#   include <wchar.h>   // _wremove, _wrename
+#endif
 
 
 #include <sys/stat.h>
@@ -46,7 +51,6 @@
 
 #ifdef COREARRAY_PLATFORM_UNIX
 
-	#include <cerrno>
 	#include <fcntl.h>
 	#include <unistd.h>
 	#include <sys/types.h>
@@ -55,7 +59,7 @@
 	#  include <sys/sysctl.h>
 	#endif
 
-	#if !defined(COREARRAY_CYGWIN) && !defined(COREARRAY_PLATFORM_MACOS)
+	#if !defined(COREARRAY_PLATFORM_CYGWIN) && !defined(COREARRAY_PLATFORM_MACOS)
 	#  include <sys/sysinfo.h>
 	#endif
 
@@ -104,9 +108,7 @@ using namespace CoreArray::_INTERNAL;
 TFPClass CoreArray::FloatClassify(const float val)
 {
 #if defined(COREARRAY_USING_R)
-
 	return FloatClassify((double)val);
-
 #else
 	#if defined(COREARRAY_CC_GNU) && defined(COREARRAY_CC_GNU_MINGW32)
 		switch (fpclass(val))
@@ -155,18 +157,16 @@ TFPClass CoreArray::FloatClassify(const float val)
 TFPClass CoreArray::FloatClassify(const double val)
 {
 #if defined(COREARRAY_USING_R)
-
-	if (ISNAN(val))
-		return fpNaN;
-	else if (R_FINITE(val))
+	if (R_FINITE(val))
 		return fpFinite;
+	else if (ISNAN(val))
+		return fpNaN;
 	else if (val == R_PosInf)
 		return fpPosInf;
 	else if (val == R_NegInf)
 		return fpNegInf;
 	else
-		return fpNaN;
-
+		return fpNaN;  // should not happen
 #else
 	#if defined(COREARRAY_CC_GNU) && defined(COREARRAY_CC_GNU_MINGW32)
 		switch (fpclass(val))
@@ -215,9 +215,7 @@ TFPClass CoreArray::FloatClassify(const double val)
 TFPClass CoreArray::FloatClassify(const long double val)
 {
 #if defined(COREARRAY_USING_R)
-
 	return FloatClassify((double)val);
-
 #else
 	#if defined(COREARRAY_CC_GNU) && defined(COREARRAY_CC_GNU_MINGW32)
 		switch (fpclass(val))
@@ -335,7 +333,7 @@ bool CoreArray::IsNaN(const double val)
 	return (ISNAN(val) != 0);
 #else
 	#if defined(COREARRAY_CC_SUNPRO)
-		return (isnanf(val) != 0);
+		return (isnan(val) != 0);
 	#elif defined(COREARRAY_CC_BORLAND)
 		return _isnan(val);
 	#elif defined(COREARRAY_CC_MSC)
@@ -353,7 +351,7 @@ bool CoreArray::IsNaN(const long double val)
 	return (ISNAN(val) != 0);
 #else
 	#if defined(COREARRAY_CC_SUNPRO)
-		return (isnanf(val) != 0);
+		return (isnan(val) != 0);
 	#elif defined(COREARRAY_CC_BORLAND)
 		return _isnan(val);
 	#elif defined(COREARRAY_CC_MSC)
@@ -395,7 +393,7 @@ bool CoreArray::IsNegInf(const long double val)
 	return (FloatClassify(val) == fpNegInf);
 }
 
-bool CoreArray::EqaulFloat(const float v1, const float v2)
+bool CoreArray::EqualFloat(const float v1, const float v2)
 {
 	if (!IsNaN(v1))
 	{
@@ -407,7 +405,7 @@ bool CoreArray::EqaulFloat(const float v1, const float v2)
 		return IsNaN(v2);
 }
 
-bool CoreArray::EqaulFloat(const double v1, const double v2)
+bool CoreArray::EqualFloat(const double v1, const double v2)
 {
 	if (!IsNaN(v1))
 	{
@@ -419,7 +417,7 @@ bool CoreArray::EqaulFloat(const double v1, const double v2)
 		return IsNaN(v2);
 }
 
-bool CoreArray::EqaulFloat(const long double v1, const long double v2)
+bool CoreArray::EqualFloat(const long double v1, const long double v2)
 {
 	if (!IsNaN(v1))
 	{
@@ -442,14 +440,20 @@ static const char *ERR_STR_TO_FLOAT = "Unable to convert string to double.";
 
 string CoreArray::Format(const char *fmt, ...)
 {
-	char buf[4096];
+	char buf[1024];
 	va_list args; va_start(args, fmt);
 	int L = vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
-	if (L >= 0)
-		return string(buf);
-	else
+	if (L < 0)
 		throw ErrConvert(ERR_FORMAT);
+	if ((size_t)L < sizeof(buf))
+		return string(buf, L);
+	// output was truncated, allocate exact size
+	string result(L, '\0');
+	va_start(args, fmt);
+	vsnprintf(&result[0], L + 1, fmt, args);
+	va_end(args);
+	return result;
 }
 
 void CoreArray::FmtText(char buf[], size_t size, const char *fmt, ...)
@@ -462,14 +466,17 @@ void CoreArray::FmtText(char buf[], size_t size, const char *fmt, ...)
 
 string CoreArray::_FmtNum(const char *fmt, ...)
 {
+	// Used only for short numeric formats ("%.7g", "%.15g", "%.17g"); the
+	// largest possible output (~25 chars for long double) fits comfortably.
 	char buf[64];
 	va_list args; va_start(args, fmt);
 	int L = vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
-	if (L >= 0)
-		return string(buf);
-	else
+	if (L < 0)
 		throw ErrConvert(ERR_FORMAT);
+	// Pass the known length so std::string skips an extra strlen scan.
+	if ((size_t)L >= sizeof(buf)) L = (int)sizeof(buf) - 1;
+	return string(buf, (size_t)L);
 }
 
 
@@ -477,46 +484,52 @@ string CoreArray::_FmtNum(const char *fmt, ...)
 // Floating number <--> string
 // =========================================================================
 
-static string STRING_INF("Inf");
-static string STRING_POS_INF("+Inf");
-static string STRING_NEG_INF("-Inf");
-static string STRING_NAN("NaN");
+static const string STRING_INF("Inf");
+static const string STRING_POS_INF("+Inf");
+static const string STRING_NEG_INF("-Inf");
+static const string STRING_NAN("NaN");
 
 string CoreArray::FloatToStr(const float val)
 {
+	// Fast path: finite values skip the classify+switch entirely.
+	if (IsFinite(val))
+		return _FmtNum("%.7g", val);
 	switch (FloatClassify(val))
 	{
 		case fpPosInf: return STRING_POS_INF;
 		case fpNegInf: return STRING_NEG_INF;
-		case fpNaN: return STRING_NAN;
-		default: return _FmtNum("%.7g", val);
+		default: return STRING_NAN;
 	}
 }
 
 string CoreArray::FloatToStr(const double val)
 {
+	if (IsFinite(val))
+		return _FmtNum("%.15g", val);
 	switch (FloatClassify(val))
 	{
 		case fpPosInf: return STRING_POS_INF;
 		case fpNegInf: return STRING_NEG_INF;
-		case fpNaN: return STRING_NAN;
-		default: return _FmtNum("%.15g", val);
+		default: return STRING_NAN;
 	}
 }
 
 string CoreArray::FloatToStr(const long double val)
 {
+	if (IsFinite(val))
+		return _FmtNum("%.17Lg", val);
 	switch (FloatClassify(val))
 	{
 		case fpPosInf: return STRING_POS_INF;
 		case fpNegInf: return STRING_NEG_INF;
-		case fpNaN: return STRING_NAN;
-		default: return _FmtNum("%.17g", val);
+		default: return STRING_NAN;
 	}
 }
 
 double CoreArray::StrToFloat(char const* str)
 {
+	if (!str)
+		throw ErrConvert(ERR_STR_TO_FLOAT);
 	if ((STRING_POS_INF==str) || (STRING_INF==str))
 		return Infinity;
 	else if (STRING_NEG_INF == str)
@@ -534,6 +547,8 @@ double CoreArray::StrToFloat(char const* str)
 
 bool CoreArray::StrToFloat(char const* str, double *rv)
 {
+	if (!str)
+		throw ErrConvert(ERR_STR_TO_FLOAT);
 	if (STRING_POS_INF == str)
 	{
     	*rv = Infinity;
@@ -557,6 +572,8 @@ bool CoreArray::StrToFloat(char const* str, double *rv)
 
 double CoreArray::StrToFloatDef(char const* str, const double Default)
 {
+	if (!str)
+		throw ErrConvert(ERR_STR_TO_FLOAT);
 	if (STRING_POS_INF == str)
 		return Infinity;
 	else if (STRING_NEG_INF == str)
@@ -577,100 +594,345 @@ double CoreArray::StrToFloatDef(char const* str, const double Default)
 // Integer <--> string
 // =========================================================================
 
+// Two-digit lookup table: "00", "01", ..., "99" concatenated (200 bytes).
+// Each pair digits_lut[2*i] and digits_lut[2*i+1] gives the decimal
+// representation of i for 0 <= i <= 99.
+static const char digits_lut[200] = {
+	'0','0','0','1','0','2','0','3','0','4','0','5','0','6','0','7','0','8','0','9',
+	'1','0','1','1','1','2','1','3','1','4','1','5','1','6','1','7','1','8','1','9',
+	'2','0','2','1','2','2','2','3','2','4','2','5','2','6','2','7','2','8','2','9',
+	'3','0','3','1','3','2','3','3','3','4','3','5','3','6','3','7','3','8','3','9',
+	'4','0','4','1','4','2','4','3','4','4','4','5','4','6','4','7','4','8','4','9',
+	'5','0','5','1','5','2','5','3','5','4','5','5','5','6','5','7','5','8','5','9',
+	'6','0','6','1','6','2','6','3','6','4','6','5','6','6','6','7','6','8','6','9',
+	'7','0','7','1','7','2','7','3','7','4','7','5','7','6','7','7','7','8','7','9',
+	'8','0','8','1','8','2','8','3','8','4','8','5','8','6','8','7','8','8','8','9',
+	'9','0','9','1','9','2','9','3','9','4','9','5','9','6','9','7','9','8','9','9'
+};
+
+// ---- Magic-number division helpers (multiply-and-shift) ----
+// These avoid hardware DIV instructions regardless of compiler optimization
+// level. The constants are derived from "Division by Invariant Integers using
+// Multiplication" (Granlund & Montgomery, 1994).
+
+// v / 10 for v in [0, 2^32)
+static inline C_UInt32 div10_u32(C_UInt32 v)
+{
+	return (C_UInt32)(((C_UInt64)v * 0xCCCCCCCDULL) >> 35);
+}
+
+// v / 100 for v in [0, 2^32)
+static inline C_UInt32 div100_u32(C_UInt32 v)
+{
+	return (C_UInt32)(((C_UInt64)v * 0x51EB851FULL) >> 37);
+}
+
+// v / 10 for v in [0, 2^64)
+__attribute__((unused))
+static inline C_UInt64 div10_u64(C_UInt64 v)
+{
+#if defined(__SIZEOF_INT128__)
+	return (C_UInt64)(((unsigned __int128)v * 0xCCCCCCCCCCCCCCCDULL) >> 67);
+#else
+	// Hacker's Delight shift-add approximation for /10
+	C_UInt64 q = (v >> 1) + (v >> 2);
+	q += (q >> 4);
+	q += (q >> 8);
+	q += (q >> 16);
+	q += (q >> 32);
+	q >>= 3;
+	// correction: if remainder >= 10 we under-estimated by 1
+	if (v - q * 10 >= 10) q++;
+	return q;
+#endif
+}
+
+// v / 100 for v in [0, 2^64)
+static inline C_UInt64 div100_u64(C_UInt64 v)
+{
+#if defined(__SIZEOF_INT128__)
+	return (C_UInt64)(((unsigned __int128)v * 0x28F5C28F5C28F5C3ULL) >> 66);
+#else
+	// Use two applications of div10
+	return div10_u64(div10_u64(v));
+#endif
+}
+
 string CoreArray::IntToStr(C_Int8 val)
 {
-	char buf[8];
+	// Range: -128..127 → max 4 chars ("-128")
+	char buf[5];
 	char *p = buf + sizeof(buf);
-	C_Int8 v = (val >= 0) ? val : -val;
-	do {
-		*(--p) = (v % 10) + '0';
-		v /= 10;
-	} while (v > 0);
+	C_UInt8 v = (val >= 0) ? (C_UInt8)val : (C_UInt8)(-(int)val);
+
+	if (v >= 100)
+	{
+		// v is 100..128 → quotient is 1, remainder is v-100
+		C_UInt8 r = v - 100;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		*(--p) = '1';
+	} else if (v >= 10)
+	{
+		C_UInt32 q = div10_u32((C_UInt32)v);
+		C_UInt32 r = (C_UInt32)v - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v);
+	}
 	if (val < 0) *(--p) = '-';
-	return string(p, sizeof(buf) - (p - buf));
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_UInt8 val)
 {
-	char buf[8];
+	// Range: 0..255 → max 3 chars ("255")
+	char buf[4];
 	char *p = buf + sizeof(buf);
-	do {
-		*(--p) = (val % 10u) + '0';
-		val /= 10u;
-	} while (val > 0);
-	return string(p, sizeof(buf) - (p - buf));
+
+	if (val >= 100)
+	{
+		// val is 100..255 → quotient is 1 or 2
+		C_UInt32 q = div100_u32((C_UInt32)val);
+		C_UInt32 r = (C_UInt32)val - q * 100;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		*(--p) = (char)('0' + q);
+	} else if (val >= 10)
+	{
+		C_UInt32 q = div10_u32((C_UInt32)val);
+		C_UInt32 r = (C_UInt32)val - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + val);
+	}
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_Int16 val)
 {
-	char buf[8];
+	// Range: -32768..32767 → max 6 chars ("-32768")
+	char buf[7];
 	char *p = buf + sizeof(buf);
-	C_Int16 v = (val >= 0) ? val : -val;
-	do {
-		*(--p) = (v % 10) + '0';
-		v /= 10;
-	} while (v > 0);
+	C_UInt32 v = (val >= 0) ? (C_UInt32)(C_UInt16)val : (C_UInt32)(C_UInt16)(-(int)val);
+
+	if (v >= 10000)
+	{
+		// v is 10000..32768
+		C_UInt32 q = div100_u32(v);        // q = v/100 (100..327)
+		C_UInt32 r = v - q * 100;          // last 2 digits
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		// q is 100..327 → do one more /100
+		C_UInt32 q2 = div100_u32(q);       // q2 = 1..3
+		C_UInt32 r2 = q - q2 * 100;        // middle 2 digits
+		*(--p) = digits_lut[r2 * 2 + 1];
+		*(--p) = digits_lut[r2 * 2];
+		*(--p) = (char)('0' + q2);
+	} else if (v >= 100)
+	{
+		// v is 100..9999
+		C_UInt32 q = div100_u32(v);
+		C_UInt32 r = v - q * 100;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		if (q >= 10)
+		{
+			C_UInt32 q2 = div10_u32(q);
+			C_UInt32 r2 = q - q2 * 10;
+			*(--p) = (char)('0' + r2);
+			*(--p) = (char)('0' + q2);
+		} else {
+			*(--p) = (char)('0' + q);
+		}
+	} else if (v >= 10)
+	{
+		C_UInt32 q = div10_u32(v);
+		C_UInt32 r = v - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v);
+	}
 	if (val < 0) *(--p) = '-';
-	return string(p, sizeof(buf) - (p - buf));
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_UInt16 val)
 {
-	char buf[8];
+	// Range: 0..65535 → max 5 chars ("65535")
+	char buf[6];
 	char *p = buf + sizeof(buf);
-	do {
-		*(--p) = (val % 10u) + '0';
-		val /= 10u;
-	} while (val > 0);
-	return string(p, sizeof(buf) - (p - buf));
+	C_UInt32 v = (C_UInt32)val;
+
+	if (v >= 10000)
+	{
+		// v is 10000..65535
+		C_UInt32 q = div100_u32(v);        // q = v/100 (100..655)
+		C_UInt32 r = v - q * 100;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		// q is 100..655
+		C_UInt32 q2 = div100_u32(q);       // q2 = 1..6
+		C_UInt32 r2 = q - q2 * 100;
+		*(--p) = digits_lut[r2 * 2 + 1];
+		*(--p) = digits_lut[r2 * 2];
+		*(--p) = (char)('0' + q2);
+	} else if (v >= 100)
+	{
+		// v is 100..9999
+		C_UInt32 q = div100_u32(v);
+		C_UInt32 r = v - q * 100;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+		if (q >= 10)
+		{
+			C_UInt32 q2 = div10_u32(q);
+			C_UInt32 r2 = q - q2 * 10;
+			*(--p) = (char)('0' + r2);
+			*(--p) = (char)('0' + q2);
+		} else {
+			*(--p) = (char)('0' + q);
+		}
+	} else if (v >= 10)
+	{
+		C_UInt32 q = div10_u32(v);
+		C_UInt32 r = v - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v);
+	}
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_Int32 val)
 {
-	char buf[16];
+	char buf[12];  // "-2147483648" = 11 chars + room
 	char *p = buf + sizeof(buf);
-	C_Int32 v = (val >= 0) ? val : -val;
-	do {
-		*(--p) = (v % 10) + '0';
-		v /= 10;
-	} while (v > 0);
+	C_UInt32 v = (val >= 0) ? (C_UInt32)val : (C_UInt32)(-(C_Int64)val);
+
+	while (v >= 100)
+	{
+		C_UInt32 q = div100_u32(v);
+		C_UInt32 r = v - q * 100;
+		v = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	if (v >= 10)
+	{
+		C_UInt32 q = div10_u32(v);
+		C_UInt32 r = v - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v);
+	}
 	if (val < 0) *(--p) = '-';
-	return string(p, sizeof(buf) - (p - buf));
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_UInt32 val)
 {
-	char buf[16];
+	char buf[12];  // "4294967295" = 10 chars + room
 	char *p = buf + sizeof(buf);
-	do {
-		*(--p) = (val % 10u) + '0';
-		val /= 10u;
-	} while (val > 0);
-	return string(p, sizeof(buf) - (p - buf));
+
+	while (val >= 100)
+	{
+		C_UInt32 q = div100_u32(val);
+		C_UInt32 r = val - q * 100;
+		val = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	if (val >= 10)
+	{
+		C_UInt32 q = div10_u32(val);
+		C_UInt32 r = val - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + val);
+	}
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_Int64 val)
 {
-	char buf[32];
+	char buf[21];  // "-9223372036854775808" = 20 chars + room
 	char *p = buf + sizeof(buf);
-	C_Int64 v = (val >= 0) ? val : -val;
-	do {
-		*(--p) = (v % 10) + '0';
-		v /= 10;
-	} while (v > 0);
+	// Negate in unsigned arithmetic; -val on signed INT64_MIN would be UB.
+	C_UInt64 v = (val >= 0) ? (C_UInt64)val : (C_UInt64)0 - (C_UInt64)val;
+
+	// 64-bit path while value exceeds 32-bit range
+	while (v >= (C_UInt64)100000000UL)
+	{
+		C_UInt64 q = div100_u64(v);
+		C_UInt32 r = (C_UInt32)(v - q * 100);
+		v = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	// Now v < 10^8, fits in 32 bits — use cheaper 32-bit math
+	C_UInt32 v32 = (C_UInt32)v;
+	while (v32 >= 100)
+	{
+		C_UInt32 q = div100_u32(v32);
+		C_UInt32 r = v32 - q * 100;
+		v32 = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	if (v32 >= 10)
+	{
+		C_UInt32 q = div10_u32(v32);
+		C_UInt32 r = v32 - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v32);
+	}
 	if (val < 0) *(--p) = '-';
-	return string(p, sizeof(buf) - (p - buf));
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 string CoreArray::IntToStr(C_UInt64 val)
 {
-	char buf[32];
+	char buf[21];  // "18446744073709551615" = 20 chars + room
 	char *p = buf + sizeof(buf);
-	do {
-		*(--p) = (val % 10u) + '0';
-		val /= 10u;
-	} while (val > 0);
-	return string(p, sizeof(buf) - (p - buf));
+
+	// 64-bit path while value exceeds 32-bit range
+	while (val >= (C_UInt64)100000000UL)
+	{
+		C_UInt64 q = div100_u64(val);
+		C_UInt32 r = (C_UInt32)(val - q * 100);
+		val = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	// Now val < 10^8, fits in 32 bits
+	C_UInt32 v32 = (C_UInt32)val;
+	while (v32 >= 100)
+	{
+		C_UInt32 q = div100_u32(v32);
+		C_UInt32 r = v32 - q * 100;
+		v32 = q;
+		*(--p) = digits_lut[r * 2 + 1];
+		*(--p) = digits_lut[r * 2];
+	}
+	if (v32 >= 10)
+	{
+		C_UInt32 q = div10_u32(v32);
+		C_UInt32 r = v32 - q * 10;
+		*(--p) = (char)('0' + r);
+		*(--p) = (char)('0' + q);
+	} else {
+		*(--p) = (char)('0' + v32);
+	}
+	return string(p, (buf + sizeof(buf)) - p);
 }
 
 long CoreArray::StrToInt(char const* str)
@@ -1086,8 +1348,17 @@ string CoreArray::NowDateToStr()
 {
 	time_t tm;
 	time(&tm);
-	string rv(ctime(&tm));
-	rv.erase(rv.size()-1, 1);
+#if defined(COREARRAY_PLATFORM_WINDOWS)
+	char buf[26];
+	ctime_s(buf, sizeof(buf), &tm);
+	string rv(buf);
+#else
+	char buf[26];
+	ctime_r(&tm, buf);
+	string rv(buf);
+#endif
+	if (!rv.empty() && rv[rv.size()-1] == '\n')
+		rv.erase(rv.size()-1, 1);
 	return rv;
 }
 
@@ -1143,13 +1414,14 @@ TSysHandle CoreArray::SysOpenFile(char const* const AFileName,
 		return (H != INVALID_HANDLE_VALUE) ? H : NULL;
 	#else
 		TSysHandle H;
+		int flag = 0;
 		#ifdef O_LARGEFILE
-			int flag = O_LARGEFILE;
-		#else
-			int flag = 0;
+			flag |= O_LARGEFILE;
 		#endif
-		H = open(AFileName, flag | AccessMode[mode] |
-			ShareMode[smode]);
+		#ifdef O_CLOEXEC
+			flag |= O_CLOEXEC;
+		#endif
+		H = open(AFileName, flag | AccessMode[mode] | ShareMode[smode]);
 		return (H > 0) ? H : 0;
 	#endif
 }
@@ -1196,17 +1468,17 @@ C_Int64 CoreArray::SysHandleSeek(TSysHandle Handle, C_Int64 Offset,
 	enum TdSysSeekOrg sk)
 {
 	#if defined(COREARRAY_PLATFORM_WINDOWS)
-		C_Int64 p = Offset;
-		DWORD *Lo = (DWORD*)&p;
-		DWORD *Hi = ((DWORD*)&p) + 1;
+		LARGE_INTEGER li;
+		li.QuadPart = Offset;
 
-		*Lo = SetFilePointer(Handle, *Lo, (long*)Hi, sk);
-		if (*Lo==INVALID_SET_FILE_POINTER && GetLastError()!=0)
+		li.LowPart = SetFilePointer(Handle, li.LowPart, &li.HighPart, sk);
+		if (li.LowPart==INVALID_SET_FILE_POINTER && GetLastError()!=0)
 			return -1;
 		else
-			return p;
+			return li.QuadPart;
 	#else
-		#if defined(COREARRAY_CYGWIN) || defined(COREARRAY_PLATFORM_MACOS) || defined(COREARRAY_PLATFORM_BSD)
+		#if defined(COREARRAY_PLATFORM_CYGWIN) || defined(COREARRAY_PLATFORM_MACOS) || defined(COREARRAY_PLATFORM_BSD) || (defined(COREARRAY_PLATFORM_LINUX) && !defined(__GLIBC__))
+			// non-glibc Linux (e.g., musl) uses lseek
 			return lseek(Handle, Offset, sk);
 		#else
 			return lseek64(Handle, Offset, sk);
@@ -1222,7 +1494,8 @@ bool CoreArray::SysHandleSetSize(TSysHandle Handle, C_Int64 NewSize)
 		else
 			return false;
 	#else
-		#if defined(COREARRAY_CYGWIN) || defined(COREARRAY_PLATFORM_MACOS) || defined(COREARRAY_PLATFORM_BSD)
+		#if defined(COREARRAY_PLATFORM_CYGWIN) || defined(COREARRAY_PLATFORM_MACOS) || defined(COREARRAY_PLATFORM_BSD) || (defined(COREARRAY_PLATFORM_LINUX) && !defined(__GLIBC__))
+			// non-glibc Linux (e.g., musl) uses ftruncate
 			return ftruncate(Handle, NewSize)==0;
 		#else
 			return ftruncate64(Handle, NewSize)==0;
@@ -1247,25 +1520,45 @@ string CoreArray::TempFileName(const char *prefix, const char *tempdir)
 	if (*tempdir)
 	{
 		fn = tempdir;
-		if (tempdir[strlen(tempdir)] != sFileSep[0])
+		// tempdir[strlen(tempdir)] indexes the NUL terminator; use the last
+		// character instead. Only append a separator if the directory path
+		// does not already end with one.
+		const size_t tlen = strlen(tempdir);
+		if (tlen > 0 && tempdir[tlen - 1] != sFileSep[0])
 			fn.append(sFileSep);
 	}
 	if (prefix) fn.append(prefix);
 
-    char tmp[64];
-	for (int n = 0; n < 10000; n++)
+#if defined(COREARRAY_PLATFORM_WINDOWS)
+	// Checked *before* COREARRAY_PLATFORM_UNIX: on Cygwin-style builds
+	// both macros may be defined, and we want the Windows-native API path
+	// to win there.
+	char tmpDir[MAX_PATH];
+	if (!tempdir || !*tempdir)
 	{
-	#if RAND_MAX > 16777215
-		sprintf(tmp, "%x", rand());
-	#else
-		sprintf(tmp, "%x%x", rand(), rand());
-	#endif
-		// check file exists
-		struct stat sb;
-		if (stat((fn + tmp).c_str(), &sb) != 0)
-        	return fn + tmp;
+		DWORD len = GetTempPathA(MAX_PATH, tmpDir);
+		if (len == 0 || len >= MAX_PATH)
+			throw ErrOSError("Failed to get temporary directory.");
+		tempdir = tmpDir;
 	}
-	throw ErrOSError("No suitable temporary file name.");
+	char tmpFile[MAX_PATH];
+	if (GetTempFileNameA(tempdir, prefix ? prefix : "tmp", 0, tmpFile) == 0)
+		throw ErrOSError("No suitable temporary file name.");
+	return string(tmpFile);
+
+#else
+
+	fn.append("xxxxxx");
+	// mkstemp requires a writable char array
+	vector<char> tpl(fn.begin(), fn.end());
+	tpl.push_back('\0');
+	int fd = mkstemp(&tpl[0]);
+	if (fd == -1)
+		throw ErrOSError("No suitable temporary file name.");
+	close(fd);
+	return string(&tpl[0]);
+
+#endif
 
 #endif
 }
@@ -1274,6 +1567,37 @@ bool CoreArray::FileExists(const string &FileName)
 {
 	struct stat sb;
 	return (stat(FileName.c_str(), &sb) == 0);
+}
+
+int CoreArray::FileRemove(const string &FileName)
+{
+#if defined(COREARRAY_PLATFORM_WINDOWS)
+	// The C runtime remove() interprets bytes in the ANSI codepage, not
+	// UTF-8. Convert to UTF-16 and use the wide variant for non-ASCII names.
+	UTF16String w = UTF8ToUTF16(UTF8String(FileName.begin(), FileName.end()));
+	if (_wremove((const wchar_t*)w.c_str()) != 0)
+		return errno;
+	return 0;
+#else
+	if (remove(FileName.c_str()) != 0)
+		return errno;
+	return 0;
+#endif
+}
+
+int CoreArray::FileRename(const string &OldName, const string &NewName)
+{
+#if defined(COREARRAY_PLATFORM_WINDOWS)
+	UTF16String w_old = UTF8ToUTF16(UTF8String(OldName.begin(), OldName.end()));
+	UTF16String w_new = UTF8ToUTF16(UTF8String(NewName.begin(), NewName.end()));
+	if (_wrename((const wchar_t*)w_old.c_str(), (const wchar_t*)w_new.c_str()) != 0)
+		return errno;
+	return 0;
+#else
+	if (rename(OldName.c_str(), NewName.c_str()) != 0)
+		return errno;
+	return 0;
+#endif
 }
 
 
@@ -1301,7 +1625,26 @@ string CoreArray::SysErrMessage(int err)
 			buf, sizeof(buf), NULL);
 		return string(buf);
 	#elif defined(COREARRAY_PLATFORM_UNIX)
-		return string(strerror(err));
+		// strerror() is not thread-safe; worker threads calling
+		// LastSysErrMsg() concurrently could otherwise see interleaved or
+		// overwritten messages. Use strerror_r() with a private buffer.
+		// Sized to match the Windows FormatMessage branch so that localized
+		// (non-English) messages are unlikely to be truncated; POSIX does
+		// not bound strerror output length and both strerror_r variants
+		// are safe on overflow (XSI returns ERANGE, GNU truncates).
+		char buf[1024];
+		buf[0] = '\0';
+		#if defined(_GNU_SOURCE) && !defined(COREARRAY_PLATFORM_MACOS) && !defined(COREARRAY_PLATFORM_BSD)
+			// GNU variant: may return a static string pointer and/or write
+			// into `buf`; its return type is `char*`.
+			const char *msg = strerror_r(err, buf, sizeof(buf));
+			return string(msg ? msg : "unknown error");
+		#else
+			// XSI / POSIX variant returns int (0 on success).
+			if (strerror_r(err, buf, sizeof(buf)) != 0 && buf[0] == '\0')
+				snprintf(buf, sizeof(buf), "errno %d", err);
+			return string(buf);
+		#endif
 	#endif
 }
 
@@ -1324,7 +1667,7 @@ int CoreArray::Mach::GetCPU_NumOfCores()
 	GetSystemInfo(&info);
 	return info.dwNumberOfProcessors;
 
-#elif defined(COREARRAY_CYGWIN)
+#elif defined(COREARRAY_PLATFORM_CYGWIN)
 
 	const char * p = getenv("NUMBER_OF_PROCESSORS");
 	if (p)
@@ -1472,21 +1815,27 @@ C_UInt64 CoreArray::Mach::GetCPU_LevelCache(int level)
 		"/sys/devices/system/cpu/cpu0/cache/index%d/size", level).c_str(), "r");
 	if (!f) return 0;
 	int x = 0;
-	if (fscanf(f, "%d", &x) != EOF)
+	if (fscanf(f, "%d", &x) == 1)
 	{
+		// The sysfs entry is always of the form "<num>K" or "<num>M"
+		// (e.g. "32K"). If the unit is missing or unrecognised report 0
+		// rather than raw `x`, because returning raw `x` would be bytes on
+		// one path and kilobytes on the other — a silent unit mismatch.
 		char ch = 0;
-		if (fscanf(f, "%c", &ch) != EOF)
+		int got = fscanf(f, "%c", &ch);
+		fclose(f);
+		if (got == 1)
 		{
-			if ((ch == 'K') || (ch == 'k'))
+			if (ch == 'K' || ch == 'k')
 				return C_UInt64(x) * 1024;
-			else if ((ch == 'M') || (ch == 'm'))
+			if (ch == 'M' || ch == 'm')
 				return C_UInt64(x) * 1024 * 1024;
-			else
-				return 0;
-		} else
-			return x;
-	} else
+		}
 		return 0;
+	} else {
+		fclose(f);
+		return 0;
+	}
 
 #else
 
@@ -1569,15 +1918,9 @@ CdThreadMutex::CdThreadMutex()
 CdThreadMutex::~CdThreadMutex()
 {
 #if defined(COREARRAY_POSIX_THREAD)
-
-	int v = pthread_mutex_destroy(&mutex);
-	if (v != 0)
-		throw ErrOSError(ERR_PTHREAD, "pthread_mutex_destroy", v);
-
+	pthread_mutex_destroy(&mutex);
 #elif defined(COREARRAY_PLATFORM_WINDOWS)
-
 	DeleteCriticalSection(&mutex);
-
 #endif
 }
 
@@ -1874,7 +2217,7 @@ CdThread::CdThread(TdThreadProc proc, void *Data)
 	_BeginThread();
 }
 
-CdThread::~CdThread()
+CdThread::~CdThread() COREARRAY_NOEXCEPT_FALSE
 {
 	try {
 		Terminate();
@@ -1926,7 +2269,9 @@ void CdThread::BeginThread()
 		SECURITY_ATTRIBUTES attr;
 			attr.nLength = sizeof(attr);
 			attr.lpSecurityDescriptor = NULL;
-			attr.bInheritHandle = true;
+			// Do not let child processes inherit worker thread handles;
+			// they should be private to this process.
+			attr.bInheritHandle = FALSE;
 		thread.Handle = CreateThread(&attr, 0, ThreadWrap1, (void*)this,
 			0, &thread.ThreadID);
 		if (thread.Handle == NULL)
@@ -1956,13 +2301,15 @@ void CdThread::_BeginThread()
 		SECURITY_ATTRIBUTES attr;
 			attr.nLength = sizeof(attr);
 			attr.lpSecurityDescriptor = NULL;
-			attr.bInheritHandle = true;
+			// Do not let child processes inherit worker thread handles; they
+			// should be private to this process.
+			attr.bInheritHandle = FALSE;
 		thread.Handle = CreateThread(&attr, 0, ThreadWrap2, (void*)&vData,
 			0, &thread.ThreadID);
 		if (thread.Handle == NULL)
 			RaiseLastOSError<ErrThread>();
 	} else
-    	throw ErrThread("_BeginThread");
+		throw ErrThread("_BeginThread");
 
 #endif
 }

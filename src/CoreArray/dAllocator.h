@@ -8,7 +8,7 @@
 //
 // dAllocator.h: Storage allocation
 //
-// Copyright (C) 2007-2017    Xiuwen Zheng
+// Copyright (C) 2007-2020    Xiuwen Zheng
 //
 // This file is part of CoreArray.
 //
@@ -27,9 +27,9 @@
 
 /**
  *	\file     dAllocator.h
- *	\author   Xiuwen Zheng [zhengx@u.washington.edu]
+ *	\author   Xiuwen Zheng [zhengxwen@gmail.com]
  *	\version  1.0
- *	\date     2007 - 2017
+ *	\date     2007 - 2018
  *	\brief    Storage allocation
  *	\details
 **/
@@ -862,6 +862,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static MEM_TYPE *Read(CdBaseIterator &I, MEM_TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			const ssize_t N = COREARRAY_ALLOC_FUNC_BUFFER / sizeof(ALLOC_TYPE);
 			ALLOC_TYPE Buf[N];
 			BYTE_LE<CdAllocator> ss(I.Allocator);
@@ -878,8 +879,11 @@ namespace CoreArray
 		}
 
 		/// read an array from CdAllocator with selection
-		static MEM_TYPE *ReadEx(CdBaseIterator &I, MEM_TYPE *p, ssize_t n, const C_BOOL Sel[])
+		static MEM_TYPE *ReadEx(CdBaseIterator &I, MEM_TYPE *p, ssize_t n,
+			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += sizeof(ALLOC_TYPE);
 			const ssize_t N = COREARRAY_ALLOC_FUNC_BUFFER / sizeof(ALLOC_TYPE);
 			ALLOC_TYPE Buf[N];
 			BYTE_LE<CdAllocator> ss(I.Allocator);
@@ -890,16 +894,18 @@ namespace CoreArray
 				ssize_t m = (n <= N) ? n : N;
 				ss.R(Buf, m);
 				p = VAL_CONV<MEM_TYPE, ALLOC_TYPE>::CvtSub(
-					p, Buf, m, Sel);
-				Sel += m;
+					p, Buf, m, sel);
+				sel += m;
 				n -= m;
 			}
 			return p;
 		}
 
 		/// write an array to CdAllocator
-		static const MEM_TYPE *Write(CdBaseIterator &I, const MEM_TYPE *p, ssize_t n)
+		static const MEM_TYPE *Write(CdBaseIterator &I, const MEM_TYPE *p,
+			ssize_t n)
 		{
+			if (n <= 0) return p;
 			const ssize_t N = COREARRAY_ALLOC_FUNC_BUFFER / sizeof(ALLOC_TYPE);
 			ALLOC_TYPE Buf[N];
 			I.Allocator->SetPosition(I.Ptr);
@@ -924,6 +930,7 @@ namespace CoreArray
 		/// read an array from CdAllocator
 		static TYPE *Read(CdBaseIterator &I, TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			BYTE_LE<CdAllocator> ss(I.Allocator);
 			I.Allocator->SetPosition(I.Ptr);
 			I.Ptr += n * sizeof(TYPE);
@@ -932,8 +939,11 @@ namespace CoreArray
 		}
 
 		/// read an array from CdAllocator with selection
-		static TYPE *ReadEx(CdBaseIterator &I, TYPE *p, ssize_t n, const C_BOOL Sel[])
+		static TYPE *ReadEx(CdBaseIterator &I, TYPE *p, ssize_t n,
+			const C_BOOL sel[])
 		{
+			if (n <= 0) return p;
+			for (; n>0 && !*sel; n--, sel++) I.Ptr += sizeof(TYPE);
 			const ssize_t N = COREARRAY_ALLOC_FUNC_BUFFER / sizeof(TYPE);
 			TYPE Buf[N];
 			BYTE_LE<CdAllocator> ss(I.Allocator);
@@ -943,8 +953,8 @@ namespace CoreArray
 			{
 				ssize_t m = (n <= N) ? n : N;
 				ss.R(Buf, m);
-				p = VAL_CONV<TYPE, TYPE>::CvtSub(p, Buf, m, Sel);
-				Sel += m;
+				p = VAL_CONV<TYPE, TYPE>::CvtSub(p, Buf, m, sel);
+				sel += m;
 				n -= m;
 			}
 			return p;
@@ -953,6 +963,7 @@ namespace CoreArray
 		/// write an array to CdAllocator
 		static const TYPE *Write(CdBaseIterator &I, const TYPE *p, ssize_t n)
 		{
+			if (n <= 0) return p;
 			BYTE_LE<CdAllocator> ss(I.Allocator);
 			I.Allocator->SetPosition(I.Ptr);
 			I.Ptr += n * sizeof(TYPE);

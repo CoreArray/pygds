@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64", "numpy>=1.20"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygds"
+version = "0.1.0"
+description = "Python Interface to CoreArray Genomic Data Structure (GDS) Files"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GPLv3" }
+authors = [
+    { name = "Xiuwen Zheng", email = "zhengxwen@gmail.com" },
+]
+dependencies = ["numpy"]
+
+[project.urls]
+Homepage = "http://github.com/CoreArray/pygds"
+
+[tool.setuptools]
+packages = ["pygds"]
+
+[tool.setuptools.package-data]
+pygds = ["include/*.h", "data/*.gds"]
